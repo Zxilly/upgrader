@@ -5,11 +5,13 @@ package dev.zxilly.lib.upgrader.checker
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.engine.okhttp.*
+import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
 class GitHubReleaseMetadataChecker(private val config: Config) :
@@ -20,12 +22,20 @@ class GitHubReleaseMetadataChecker(private val config: Config) :
 
         val client = HttpClient(OkHttp) {
             install(ContentNegotiation) {
-                json(Json {
+                val j = Json {
                     prettyPrint = true
                     isLenient = true
                     ignoreUnknownKeys = true
-                })
-                headersOf("Accept", "application/vnd.github+json")
+                }
+                json(j, contentType = ContentType.Application.Json)
+                json(j, contentType = ContentType.Application.OctetStream)
+                json(j, contentType = ContentType("application", "vnd.github+json"))
+            }
+            install(HttpRequestRetry) {
+                retryOnException(maxRetries = 3)
+            }
+            defaultRequest {
+                header("User-Agent", "Zxilly-Upgrader")
             }
         }
 
@@ -66,7 +76,7 @@ class GitHubReleaseMetadataChecker(private val config: Config) :
     }
 
     companion object {
-        const val endpoint = "https://api.github.com/repos/%s/%s/releases/latest"
+        const val endpoint = "https://api.github.com/repos/%s/%s/releases"
     }
 
     data class Config(
@@ -82,6 +92,7 @@ class GitHubReleaseMetadataChecker(private val config: Config) :
 }
 
 object GitHubReleaseInfo {
+    @Serializable
     data class Root(
         val url: String,
         @SerialName("html_url")
@@ -113,6 +124,7 @@ object GitHubReleaseInfo {
         val assets: List<Asset>,
     )
 
+    @Serializable
     data class Author(
         val login: String,
         val id: Long,
@@ -148,6 +160,7 @@ object GitHubReleaseInfo {
         val siteAdmin: Boolean,
     )
 
+    @Serializable
     data class Asset(
         val url: String,
         @SerialName("browser_download_url")
@@ -170,6 +183,7 @@ object GitHubReleaseInfo {
         val uploader: Uploader,
     )
 
+    @Serializable
     data class Uploader(
         val login: String,
         val id: Long,
@@ -208,6 +222,8 @@ object GitHubReleaseInfo {
 }
 
 object MetaDataInfo {
+
+    @Serializable
     data class Root(
         val version: Long,
         val artifactType: ArtifactType,
@@ -217,15 +233,17 @@ object MetaDataInfo {
         val elementType: String,
     )
 
+    @Serializable
     data class ArtifactType(
         val type: String,
         val kind: String,
     )
 
+    @Serializable
     data class Element(
         val type: String,
-        val filters: List<Any?>,
-        val attributes: List<Any?>,
+        val filters: List<String>,
+        val attributes: List<String>,
         val versionCode: Long,
         val versionName: String,
         val outputFile: String,
