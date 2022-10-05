@@ -21,7 +21,7 @@ create a class implements `Checker`, ans
 
 ```kotlin
 
-class MyApplicaiton : Application() {
+class MyApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         Upgrader(yourCheckerInstance, this)
