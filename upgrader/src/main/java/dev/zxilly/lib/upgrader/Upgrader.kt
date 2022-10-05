@@ -227,6 +227,9 @@ class Upgrader(private val checker: Checker, private val app: Application) :
                 }
                 .setNegativeButton("取消") { _, _ -> retry = false }
                 .show()
+                .also {
+                    it.setCancelable(false)
+                }
             if (retry) {
                 pendingAction.offer { tryInstall(installUri) }
             }

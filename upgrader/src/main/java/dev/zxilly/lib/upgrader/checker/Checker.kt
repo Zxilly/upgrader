@@ -5,7 +5,7 @@ import dev.zxilly.lib.upgrader.Utils.getCurrentVersionCode
 import java.io.Serializable
 
 data class Version(
-    val versionCode: Int,
+    val versionCode: Long,
     val versionName: String,
     val versionInfo: String?,
 
@@ -23,7 +23,7 @@ interface Checker {
 
     suspend fun getLatestVersion(): Version
 
-    suspend fun getLatestVersionCode(): Int {
+    suspend fun getLatestVersionCode(): Long {
         return getLatestVersion().versionCode
     }
 
