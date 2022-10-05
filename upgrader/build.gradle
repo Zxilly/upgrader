@@ -18,7 +18,7 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         debug {
@@ -35,7 +35,7 @@ android {
     publishing {
         singleVariant("release") {
             withSourcesJar()
-//            withJavadocJar()
+            withJavadocJar()
         }
     }
 }
@@ -64,7 +64,7 @@ afterEvaluate {
                 from components.release
                 groupId = 'com.github.Zxilly'
                 artifactId = 'upgrader'
-                version = 'master-20'
+                version = 'master-SNAPSHOT'
             }
         }
     }
