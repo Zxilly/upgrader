@@ -93,10 +93,25 @@ class Upgrader(private val checker: Checker, private val app: Application) :
                 return@launch
             }
 
-            if (checker.shouldUpgrade(app)) {
+            val shouldUpgrade = runCatching {
+                checker.shouldUpgrade(app)
+            }
+                .onFailure {
+                    Log.e(TAG, "Failed to check upgrade", it)
+                }
+                .getOrDefault(false)
+
+            if (shouldUpgrade) {
                 Log.i(TAG, "Upgrade is available")
 
-                val version = checker.getLatestVersion()
+                val version = runCatching {
+                    checker.getLatestVersion()
+                }
+                    .onFailure {
+                        Log.e(TAG, "Failed to get latest version", it)
+                    }
+                    .getOrNull() ?: return@launch
+
                 Log.i(TAG, "Latest version is ${version.versionName} (${version.versionCode})")
 
                 tryExecuteForegroundAction {
@@ -181,10 +196,12 @@ class Upgrader(private val checker: Checker, private val app: Application) :
                 OneTimeWorkRequest.MIN_BACKOFF_MILLIS,
                 TimeUnit.MILLISECONDS
             )
-            .setInputData(workDataOf(
-                DownloadWorker.FileParams.KEY_FILE_NAME to (version.downloadFileName ?: ""),
-                DownloadWorker.FileParams.KEY_FILE_URL to version.downloadUrl,
-            ))
+            .setInputData(
+                workDataOf(
+                    DownloadWorker.FileParams.KEY_FILE_NAME to (version.downloadFileName ?: ""),
+                    DownloadWorker.FileParams.KEY_FILE_URL to version.downloadUrl,
+                )
+            )
             .build()
 
         workManager.enqueueUniqueWork(
