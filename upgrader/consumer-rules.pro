@@ -1,1 +1,1 @@
--keep class dev.zxilly.lib.upgrader.** { *; }
+-keep class dev.zxilly.lib.upgrader.checker.** { *; }
