@@ -105,3 +105,4 @@ lint/generated/
 lint/outputs/
 lint/tmp/
 *.hprof
+!gradle/wrapper/gradle-wrapper.jar
