@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit
 @Suppress("MemberVisibilityCanBePrivate", "unused")
 class Upgrader(private val checker: Checker, private val app: Application) :
     CoroutineScope by CoroutineScope(
-        Dispatchers.IO
+        Dispatchers.Main
     ) {
     private val repo = Repo(app)
     private val checkLock = Mutex()
