@@ -72,6 +72,7 @@ class Upgrader(private val checker: Checker, private val app: Application) :
             }
 
         })
+        sInstance = this
     }
 
     private fun tryExecuteForegroundAction(action: () -> Unit) {
@@ -129,13 +130,6 @@ class Upgrader(private val checker: Checker, private val app: Application) :
         }
     }
 
-    fun setAutoCheck(value: Boolean) {
-        repo.setAutoCheck(value)
-    }
-
-    fun getAutoCheck(): Boolean {
-        return repo.getAutoCheck()
-    }
 
     @UiThread
     private fun showNoticeDialog(version: Version) {
@@ -256,8 +250,23 @@ class Upgrader(private val checker: Checker, private val app: Application) :
     companion object {
         private const val TAG = "Upgrader"
 
-        fun renderUpdateMessage(context: Context, version: Version): String {
+        private fun renderUpdateMessage(context: Context, version: Version): String {
             return "${Utils.getCurrentAppName(context)} ${version.versionName} (${version.versionCode}) 可供下载和安装。"
+        }
+
+        fun setAutoCheck(context: Context, value: Boolean) {
+            val repo = Repo(context)
+            repo.setAutoCheck(value)
+        }
+
+        fun getAutoCheck(context: Context): Boolean {
+            val repo = Repo(context)
+            return repo.getAutoCheck()
+        }
+
+        private var sInstance: Upgrader? = null
+        fun getInstance(): Upgrader? {
+            return sInstance
         }
 
         private const val downloadWorkerTag = "download_worker_tag"
