@@ -1,5 +1,6 @@
 package dev.zxilly.lib.upgrader
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -21,6 +22,7 @@ class DownloadWorker(
 
     private val notificationManager = NotificationManagerCompat.from(context)
 
+    @SuppressLint("MissingPermission")
     override suspend fun doWork(): Result {
         val fileUrl = inputData.getString(FileParams.KEY_FILE_URL) ?: ""
         val fileName =

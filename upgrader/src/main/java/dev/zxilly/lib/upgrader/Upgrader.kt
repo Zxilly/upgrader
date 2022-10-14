@@ -1,14 +1,18 @@
 package dev.zxilly.lib.upgrader
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.AlertDialog
 import android.app.Application
 import android.app.Application.ActivityLifecycleCallbacks
+import android.app.PendingIntent
 import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.annotation.UiThread
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.work.*
 import dev.zxilly.lib.upgrader.checker.Checker
 import dev.zxilly.lib.upgrader.checker.Version
@@ -186,6 +190,7 @@ class Upgrader private constructor(private val app: Application, config: Config)
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .build()
         val workManager = WorkManager.getInstance(mForegroundActivity.get()!!)
+        val notificationManager = NotificationManagerCompat.from(app)
 
         val worker = OneTimeWorkRequestBuilder<DownloadWorker>()
             .addTag(downloadWorkerTag)
@@ -211,12 +216,31 @@ class Upgrader private constructor(private val app: Application, config: Config)
         )
 
         val observer = object : androidx.lifecycle.Observer<WorkInfo> {
+            @SuppressLint("MissingPermission")
             override fun onChanged(it: WorkInfo) {
                 if (it.state == WorkInfo.State.SUCCEEDED) {
                     it.outputData.getString(DownloadWorker.FileParams.KEY_FILE_URI)?.let { uri ->
                         tryExecuteForegroundAction {
                             tryInstall(uri)
                         }
+
+                        val notification = NotificationCompat.Builder(app, "upgrade")
+                            .setSmallIcon(R.drawable.install)
+                            .setContentTitle("应用更新")
+                            .setContentText("点击安装更新")
+                            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                            .setContentIntent(
+                                app.packageManager.getLaunchIntentForPackage(app.packageName)?.let {
+                                    PendingIntent.getActivity(
+                                        app,
+                                        0,
+                                        it,
+                                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                                    )
+                                }
+                            )
+                            .build()
+                        notificationManager.notify(Random().nextInt(), notification)
                     }
                 } else {
                     Log.i(TAG, "Download state ${it.state.name}")
