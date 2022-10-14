@@ -29,3 +29,7 @@ jobs:
         uses: gradle/gradle-build-action@v2
         with:
           arguments: build test --scan
+
+      - name: Request Jitpack Build
+        run: |
+          curl -s -m 10 https://jitpack.io/com/github/Zxilly/upgrader/master-SNAPSHOT
