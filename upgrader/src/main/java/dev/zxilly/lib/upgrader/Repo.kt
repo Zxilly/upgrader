@@ -1,14 +1,11 @@
 package dev.zxilly.lib.upgrader
 
 import android.content.Context
-import android.content.SharedPreferences
-import java.util.Date
+import java.util.*
 
 class Repo(context: Context) {
-    private val sharedPref: SharedPreferences
-
-    init {
-        sharedPref = context.getSharedPreferences("upgrader", Context.MODE_PRIVATE)
+    private val sharedPref by lazy {
+        context.getSharedPreferences("upgrader", Context.MODE_PRIVATE)
     }
 
     fun getAutoCheck(): Boolean {
@@ -19,7 +16,7 @@ class Repo(context: Context) {
         sharedPref.edit().putBoolean(AUTO_CHECK_KEY, value).apply()
     }
 
-    fun getCheckDeadLine():Date? {
+    fun getCheckDeadLine(): Date? {
         val time = sharedPref.getLong(CHECK_DEADLINE_KEY, 0)
         return if (time == 0L) {
             null

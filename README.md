@@ -17,14 +17,14 @@ dependencies {
 
 ## Usage
 
-create a class implements `Checker`, ans
+create a class implements `Checker`, and
 
 ```kotlin
 
 class MyApplication : Application() {
     override fun onCreate() {
         super.onCreate()
-        Upgrader(yourCheckerInstance, this)
+        Upgrader.init(yourCheckerInstance, this)
     }
 }
 ```
@@ -33,7 +33,7 @@ By default, it will auto check for update. You can also check for update manuall
 
 ```kotlin
 
-(application as MyApplicaiton).upgrader.tryUpgrade()
+Upgrader.getInstance()?.tryUpgrade()
 
 ```
 

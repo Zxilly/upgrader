@@ -20,8 +20,8 @@ import java.lang.ref.WeakReference
 import java.util.*
 import java.util.concurrent.TimeUnit
 
-@Suppress("MemberVisibilityCanBePrivate", "unused")
-class Upgrader(private val checker: Checker, private val app: Application) :
+@Suppress("MemberVisibilityCanBePrivate", "unused", "SpellCheckingInspection")
+class Upgrader private constructor(private val app: Application, config: Config) :
     CoroutineScope by CoroutineScope(
         Dispatchers.Main
     ) {
@@ -30,6 +30,9 @@ class Upgrader(private val checker: Checker, private val app: Application) :
     private var mForegroundActivity: WeakReference<Activity?> = WeakReference(null)
 
     private var pendingAction: Queue<() -> Unit> = LinkedList()
+
+    private val checker = config.checker
+    private val ignoreActivities = config.ignoreActivities
 
     init {
         if (repo.getAutoCheck()) {
@@ -51,8 +54,11 @@ class Upgrader(private val checker: Checker, private val app: Application) :
 
             override fun onActivityResumed(activity: Activity) {
                 mForegroundActivity = WeakReference(activity)
-                while (pendingAction.isNotEmpty()) {
-                    pendingAction.remove().invoke()
+
+                if (!ignoreActivities.contains(activity::class.java)) {
+                    while (pendingAction.isNotEmpty()) {
+                        pendingAction.remove().invoke()
+                    }
                 }
             }
 
@@ -268,6 +274,15 @@ class Upgrader(private val checker: Checker, private val app: Application) :
         fun getInstance(): Upgrader? {
             return sInstance
         }
+
+        fun init(app: Application, config: Config) {
+            sInstance = Upgrader(app, config)
+        }
+
+        data class Config(
+            val checker: Checker,
+            val ignoreActivities: List<Class<out Activity>> = emptyList(),
+        )
 
         private const val downloadWorkerTag = "download_worker_tag"
     }

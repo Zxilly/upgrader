@@ -14,7 +14,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-class GitHubReleaseMetadataChecker(private val config: Config) :
+class GitHubReleaseMetadataChecker(private val config: GitHubRMCConfig) :
     Checker {
     private var version: Version? = null
     override suspend fun getLatestVersion(): Version {
@@ -45,8 +45,8 @@ class GitHubReleaseMetadataChecker(private val config: Config) :
             }.body()
 
         val release = when (config.upgradeChannel) {
-            Config.UpgradeChannel.RELEASE -> releaseInfo.firstOrNull { !it.prerelease }
-            Config.UpgradeChannel.PRE_RELEASE -> releaseInfo.firstOrNull()
+            GitHubRMCConfig.UpgradeChannel.RELEASE -> releaseInfo.firstOrNull { !it.prerelease }
+            GitHubRMCConfig.UpgradeChannel.PRE_RELEASE -> releaseInfo.firstOrNull()
         } ?: throw Exception("No release found")
 
         // find output-metadata.json
@@ -78,20 +78,20 @@ class GitHubReleaseMetadataChecker(private val config: Config) :
     companion object {
         const val endpoint = "https://api.github.com/repos/%s/%s/releases"
     }
+}
 
-    data class Config(
-        val owner: String,
-        val repo: String,
-        val upgradeChannel: UpgradeChannel = UpgradeChannel.RELEASE,
+data class GitHubRMCConfig(
+    val owner: String,
+    val repo: String,
+    val upgradeChannel: UpgradeChannel = UpgradeChannel.RELEASE,
 
-        ) {
-        enum class UpgradeChannel {
-            RELEASE, PRE_RELEASE
-        }
+    ) {
+    enum class UpgradeChannel {
+        RELEASE, PRE_RELEASE
     }
 }
 
-object GitHubReleaseInfo {
+private object GitHubReleaseInfo {
     @Serializable
     data class Root(
         val url: String,
