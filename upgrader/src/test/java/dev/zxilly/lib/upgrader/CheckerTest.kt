@@ -1,6 +1,7 @@
 package dev.zxilly.lib.upgrader
 
 import dev.zxilly.lib.upgrader.checker.AppCenterChecker
+import dev.zxilly.lib.upgrader.checker.GitHubRMCConfig
 import dev.zxilly.lib.upgrader.checker.GitHubReleaseMetadataChecker
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
@@ -11,10 +12,10 @@ class CheckerTest {
     @Test
     fun gitHubReleaseMetadataCheckerInit() = runTest {
         GitHubReleaseMetadataChecker(
-            GitHubReleaseMetadataChecker.Config(
+            GitHubRMCConfig(
                 "ZNotify",
                 "android",
-                GitHubReleaseMetadataChecker.Config.UpgradeChannel.PRE_RELEASE
+                GitHubRMCConfig.UpgradeChannel.PRE_RELEASE
             )
         )
     }
@@ -22,10 +23,10 @@ class CheckerTest {
     @Test
     fun gitHubReleaseMetadataCheckerGetLatestVersion() = runTest {
         GitHubReleaseMetadataChecker(
-            GitHubReleaseMetadataChecker.Config(
+            GitHubRMCConfig(
                 "ZNotify",
                 "android",
-                GitHubReleaseMetadataChecker.Config.UpgradeChannel.PRE_RELEASE
+                GitHubRMCConfig.UpgradeChannel.PRE_RELEASE
             )
         ).getLatestVersion()
     }
