@@ -7,15 +7,17 @@ import android.app.Application
 import android.app.Application.ActivityLifecycleCallbacks
 import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.annotation.UiThread
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.net.toFile
+import androidx.core.net.toUri
 import androidx.work.*
-import dev.zxilly.lib.upgrader.checker.Checker
-import dev.zxilly.lib.upgrader.checker.Version
+import dev.zxilly.lib.upgrader.Utils.toProviderUri
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -90,6 +92,12 @@ class Upgrader private constructor(private val app: Application, config: Config)
             action.invoke()
         } else {
             pendingAction.offer(action)
+        }
+    }
+
+    private fun tryExecuteBackgroundAction(action: () -> Unit) {
+        if (mForegroundActivity.get() == null) {
+            action.invoke()
         }
     }
 
@@ -203,8 +211,7 @@ class Upgrader private constructor(private val app: Application, config: Config)
             )
             .setInputData(
                 workDataOf(
-                    DownloadWorker.FileParams.KEY_FILE_NAME to (version.downloadFileName ?: ""),
-                    DownloadWorker.FileParams.KEY_FILE_URL to version.downloadUrl,
+                    DownloadWorker.Params.KEY_VERSION to version.serialize()
                 )
             )
             .build()
@@ -218,30 +225,83 @@ class Upgrader private constructor(private val app: Application, config: Config)
         val observer = object : androidx.lifecycle.Observer<WorkInfo> {
             @SuppressLint("MissingPermission")
             override fun onChanged(it: WorkInfo) {
+                fun infoLack() {
+                    Log.e(TAG, "Download info lack")
+                }
+
                 if (it.state == WorkInfo.State.SUCCEEDED) {
-                    it.outputData.getString(DownloadWorker.FileParams.KEY_FILE_URI)?.let { uri ->
+                    val installUri = it.outputData.getString(DownloadWorker.Params.KEY_INSTALL_URI)
+
+                    if (installUri == null) {
+                        infoLack()
+                        return
+                    }
+
+                    val file = installUri.toUri().toFile()
+                    if (!Utils.checkApk(app, file, version)) {
+                        Log.e(TAG, "Downloaded apk is invalid")
+                        Toast.makeText(app, "下载的APK文件无效", Toast.LENGTH_SHORT).show()
+                        return
+                    }
+
+                    // if is foreground, install through notification
+                    if (mForegroundActivity.get() != null) {
+                        if (Utils.checkInstallPermission(app)) {
+                            val notification =
+                                NotificationCompat.Builder(
+                                    app,
+                                    Utils.NotificationConstants.CHANNEL_ID
+                                )
+                                    .setSmallIcon(R.drawable.install)
+                                    .setContentTitle("安装更新")
+                                    .setContentText("点击安装更新")
+                                    .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                                    .setContentIntent(
+                                        PendingIntent.getActivity(
+                                            app,
+                                            0,
+                                            Intent(Intent.ACTION_VIEW).apply {
+                                                setDataAndType(
+                                                    file.toProviderUri(app),
+                                                    "application/vnd.android.package-archive"
+                                                )
+                                                flags =
+                                                    Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                            },
+                                            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                                        )
+                                    )
+                                    .build()
+                            notificationManager.notify(Random().nextInt(), notification)
+                        } else {
+                            tryInstall(installUri)
+                        }
+                    } else {
                         tryExecuteForegroundAction {
-                            tryInstall(uri)
+                            tryInstall(installUri)
                         }
 
-                        val notification = NotificationCompat.Builder(app, "upgrade")
-                            .setSmallIcon(R.drawable.install)
-                            .setContentTitle("应用更新")
-                            .setContentText("点击安装更新")
-                            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                            .setContentIntent(
-                                app.packageManager.getLaunchIntentForPackage(app.packageName)?.let {
-                                    PendingIntent.getActivity(
-                                        app,
-                                        0,
-                                        it,
-                                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                                    )
-                                }
-                            )
-                            .build()
+                        val notification =
+                            NotificationCompat.Builder(app, Utils.NotificationConstants.CHANNEL_ID)
+                                .setSmallIcon(R.drawable.install)
+                                .setContentTitle("安装更新")
+                                .setContentText("点击安装更新")
+                                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                                .setContentIntent(
+                                    app.packageManager.getLaunchIntentForPackage(app.packageName)
+                                        ?.let {
+                                            PendingIntent.getActivity(
+                                                app,
+                                                0,
+                                                it,
+                                                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                                            )
+                                        }
+                                )
+                                .build()
                         notificationManager.notify(Random().nextInt(), notification)
                     }
+
                 } else {
                     Log.i(TAG, "Download state ${it.state.name}")
                 }

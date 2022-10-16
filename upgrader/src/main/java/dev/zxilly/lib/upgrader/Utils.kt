@@ -4,6 +4,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
@@ -65,12 +66,12 @@ object Utils {
     }
 
     @OptIn(InternalAPI::class)
-    suspend fun getSavedApkUri(
+    suspend fun getSavedApkFile(
         fileName: String,
         fileUrl: String,
         context: Context,
         onProgress: (Int) -> Unit = {}
-    ): Uri? {
+    ): File? {
         val client = HttpClient(OkHttp) {
             install(HttpTimeout) {
                 socketTimeoutMillis = 10000
@@ -99,20 +100,22 @@ object Utils {
             }
 
             val contentLength = response.contentLength() ?: 0L
-            Log.i("download", "getSavedApkUri: Content Size ${contentLength.toFloat() / 1024 / 1024} MB")
+            Log.i(
+                "download",
+                "getSavedApkUri: Content Size ${contentLength.toFloat() / 1024 / 1024} MB"
+            )
 
             if (!response.status.isSuccess()) {
                 Log.e("TAG", "getSavedApkUri: ${response.status.value}")
                 return@runCatching null
             }
             response.content.copyAndClose(target.writeChannel())
-            target.deleteOnExit()
         }
         if (ret.isFailure) {
             Log.e("TAG", "getSavedApkUri: ", ret.exceptionOrNull())
         }
 
-        return if (ret.isSuccess) target.toUri() else null
+        return if (ret.isSuccess) target else null
 
     }
 
@@ -128,8 +131,7 @@ object Utils {
         val uri = installUri.toUri().toFile().toProviderUri(context)
 
         val intent = Intent(Intent.ACTION_VIEW)
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
         intent.setDataAndType(uri, "application/vnd.android.package-archive")
         context.startActivity(intent)
     }
@@ -169,6 +171,45 @@ object Utils {
                     debounceJob = null
                 }
             }
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    fun checkApk(context: Context, file: File, version: Version): Boolean {
+        var flag: Boolean
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+            val info = context.packageManager.getPackageArchiveInfo(file.absolutePath, 0)
+                ?: return false
+
+            flag = info.versionCode.toLong() == version.versionCode
+            flag = flag and (info.versionName != version.versionName)
+
+            return flag
+
+        } else {
+            val info = context.packageManager.getPackageArchiveInfo(file.absolutePath, PackageManager.GET_SIGNING_CERTIFICATES)
+                    ?: return false
+            flag = info.longVersionCode == version.versionCode
+            flag = flag and (info.versionName == version.versionName)
+
+            val currentSignature = context.packageManager.getPackageInfo(
+                context.packageName,
+                PackageManager.GET_SIGNING_CERTIFICATES
+            )
+                .signingInfo
+
+            if(currentSignature.hasMultipleSigners()){
+                return flag
+            }
+
+            val currentSignatures = currentSignature
+                .apkContentsSigners.map { it.toCharsString() }
+
+            val apkSignature = info.signingInfo.signingCertificateHistory[0].toCharsString()
+
+            flag = flag and currentSignatures.contains(apkSignature)
+
+            return flag
         }
     }
 }

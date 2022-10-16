@@ -5,12 +5,13 @@ import android.content.Context
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.net.toUri
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import dev.zxilly.lib.upgrader.Utils.NotificationConstants
 import dev.zxilly.lib.upgrader.Utils.debounce
-import dev.zxilly.lib.upgrader.Utils.getSavedApkUri
+import dev.zxilly.lib.upgrader.Utils.getSavedApkFile
 import dev.zxilly.lib.upgrader.Utils.requireNotificationChannel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -24,21 +25,22 @@ class DownloadWorker(
 
     @SuppressLint("MissingPermission")
     override suspend fun doWork(): Result {
-        val fileUrl = inputData.getString(FileParams.KEY_FILE_URL) ?: ""
-        val fileName =
-            inputData.getString(FileParams.KEY_FILE_NAME) ?: fileUrl.substringAfterLast("/")
+        val versionString = inputData.getString(Params.KEY_VERSION) ?: return Result.failure(
+            workDataOf(Params.KEY_ERROR to "No file url provided")
+        )
 
-        Log.d("TAG", "doWork: $fileUrl | $fileName")
+        val version = versionString.toVersion()
+
+        Log.d("TAG", "doWork: ${version.downloadUrl} | ${version.downloadFileName}")
 
 
-        if (fileName.isEmpty()
-            || fileUrl.isEmpty()
-        ) {
-            Result.failure(workDataOf("error" to "fileUrl or fileName is empty"))
+        if (version.downloadUrl.isBlank()) {
+            return Result.failure(workDataOf(Params.KEY_ERROR to "No file url provided"))
         }
 
-        if (!fileName.endsWith(".apk")) {
-            Result.failure(workDataOf("error" to "File name must end with .apk"))
+        var fileName = version.downloadFileName
+        if (fileName.isNullOrBlank()){
+            fileName = "${version.versionCode}-${version.versionName}.apk"
         }
 
         requireNotificationChannel(context)
@@ -66,27 +68,34 @@ class DownloadWorker(
                 notificationManager.notify(NotificationConstants.NOTIFICATION_ID, notification)
             }
         }
-        val uri = getSavedApkUri(
+        val file = getSavedApkFile(
             fileName = fileName,
-            fileUrl = fileUrl,
+            fileUrl = version.downloadUrl,
             context = context
         ) { progress ->
             notificationDebounce(progress)
         }
 
         notificationManager.cancel(NotificationConstants.NOTIFICATION_ID)
-        return if (uri != null) {
-            Result.success(workDataOf(FileParams.KEY_FILE_URI to uri.toString()))
+
+        return if (file != null) {
+            Result.success(workDataOf(
+                Params.KEY_INSTALL_URI to file.toUri().toString(),
+                Params.KEY_VERSION to version.serialize()
+            ))
         } else {
-            Result.failure()
+            Result.failure(workDataOf(
+                Params.KEY_ERROR to "Download failed",
+            ))
         }
 
     }
 
-    object FileParams {
-        const val KEY_FILE_URL = "key_file_url"
-        const val KEY_FILE_NAME = "key_file_name"
-        const val KEY_FILE_URI = "key_file_uri"
+    object Params {
+        const val KEY_VERSION = "version"
+        const val KEY_ERROR = "error"
+
+        const val KEY_INSTALL_URI = "install_uri"
     }
 
 }

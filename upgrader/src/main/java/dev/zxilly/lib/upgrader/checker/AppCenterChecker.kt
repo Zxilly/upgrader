@@ -1,5 +1,7 @@
 package dev.zxilly.lib.upgrader.checker
 
+import dev.zxilly.lib.upgrader.Checker
+import dev.zxilly.lib.upgrader.Version
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.engine.okhttp.*
@@ -42,7 +44,7 @@ class AppCenterChecker(appSecret: String) : Checker {
         val versionName = releaseInfo.shortVersion
         val versionCode = releaseInfo.version.toLong()
         val versionInfo = releaseInfo.releaseNotes
-        val downloadUrl = releaseInfo.releaseNotesUrl
+        val downloadUrl = releaseInfo.downloadUrl
         version = Version(versionCode, versionName, versionInfo, downloadUrl, "$versionCode.apk")
         return version!!
     }
