@@ -112,24 +112,18 @@ class Upgrader private constructor(private val app: Application, config: Config)
                 return@launch
             }
 
-            val shouldUpgrade = runCatching {
-                checker.shouldUpgrade(app)
-            }
-                .onFailure {
-                    Log.e(TAG, "Failed to check upgrade", it)
+            val version = runCatching {
+                checker.getLatestVersion()
+            }.onFailure {
+                Log.e(TAG, "Failed to get latest version", it)
+                if (!silent) {
+                    Toast.makeText(app, "检查更新失败", Toast.LENGTH_SHORT).show()
                 }
-                .getOrDefault(false)
+            }.getOrNull() ?: return@launch
 
-            if (shouldUpgrade) {
+
+            if (shouldUpgrade(context = app, version = version)) {
                 Log.i(TAG, "Upgrade is available")
-
-                val version = runCatching {
-                    checker.getLatestVersion()
-                }
-                    .onFailure {
-                        Log.e(TAG, "Failed to get latest version", it)
-                    }
-                    .getOrNull() ?: return@launch
 
                 Log.i(TAG, "Latest version is ${version.versionName} (${version.versionCode})")
 
@@ -148,6 +142,17 @@ class Upgrader private constructor(private val app: Application, config: Config)
                 checkLock.unlock()
             }
         }
+    }
+
+    private fun shouldUpgrade(context: Context, version: Version): Boolean {
+        val currentVersionCode = Utils.getCurrentVersionCode(context)
+
+        Log.i(
+            "Upgrader",
+            "Current version: $currentVersionCode, Latest version: ${version.versionCode}"
+        )
+
+        return currentVersionCode < version.versionCode
     }
 
 

@@ -1,10 +1,8 @@
 package dev.zxilly.lib.upgrader
 
-import android.content.Context
-import android.util.Log
-import dev.zxilly.lib.upgrader.Utils.getCurrentVersionCode
 import kotlinx.serialization.json.Json
 import java.io.Serializable
+
 @kotlinx.serialization.Serializable
 data class Version(
     val versionCode: Long,
@@ -28,30 +26,5 @@ fun String.toVersion(): Version {
 @Suppress("unused")
 interface Checker {
 
-    suspend fun shouldUpgrade(context: Context): Boolean {
-        val currentVersionCode = getCurrentVersionCode(context)
-        val latestVersion = getLatestVersion()
-
-        Log.i("Upgrader", "Current version: $currentVersionCode, Latest version: ${latestVersion.versionCode}")
-
-        return currentVersionCode < latestVersion.versionCode
-    }
-
     suspend fun getLatestVersion(): Version
-
-    suspend fun getLatestVersionCode(): Long {
-        return getLatestVersion().versionCode
-    }
-
-    suspend fun getLatestVersionName(): String {
-        return getLatestVersion().versionName
-    }
-
-    suspend fun getLatestVersionInfo(): String? {
-        return getLatestVersion().versionInfo
-    }
-
-    suspend fun getLatestDownloadUrl(): String {
-        return getLatestVersion().downloadUrl
-    }
 }

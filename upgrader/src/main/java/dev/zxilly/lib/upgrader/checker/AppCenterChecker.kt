@@ -15,11 +15,8 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
 class AppCenterChecker(appSecret: String) : Checker {
-    private var version: Version? = null
 
     override suspend fun getLatestVersion(): Version {
-        if (version != null) return version!!
-
         val client = HttpClient(OkHttp) {
             defaultRequest {
                 header("User-Agent", "Zxilly-Upgrader")
@@ -45,8 +42,7 @@ class AppCenterChecker(appSecret: String) : Checker {
         val versionCode = releaseInfo.version.toLong()
         val versionInfo = releaseInfo.releaseNotes
         val downloadUrl = releaseInfo.downloadUrl
-        version = Version(versionCode, versionName, versionInfo, downloadUrl, "$versionCode.apk")
-        return version!!
+        return Version(versionCode, versionName, versionInfo, downloadUrl, "$versionCode.apk")
     }
 
     private val endpoint =

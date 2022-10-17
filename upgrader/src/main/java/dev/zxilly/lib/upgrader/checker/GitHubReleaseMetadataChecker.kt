@@ -18,10 +18,7 @@ import kotlinx.serialization.json.Json
 
 class GitHubReleaseMetadataChecker(private val config: GitHubRMCConfig) :
     Checker {
-    private var version: Version? = null
     override suspend fun getLatestVersion(): Version {
-        if (version != null) return version!!
-
         val client = HttpClient(OkHttp) {
             install(ContentNegotiation) {
                 val j = Json {
@@ -67,14 +64,13 @@ class GitHubReleaseMetadataChecker(private val config: GitHubRMCConfig) :
         val downloadUrl = release.assets.find { it.name == apkFileName }?.browserDownloadUrl
             ?: throw Exception("APK file not found in release")
 
-        version = Version(
+        return Version(
             versionCode,
             versionName,
             release.body,
             downloadUrl,
             apkFileName
         )
-        return version!!
     }
 
     companion object {
