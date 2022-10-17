@@ -138,6 +138,8 @@ class Upgrader private constructor(private val app: Application, config: Config)
                 }
 
             } else {
+                Log.i(TAG, "No upgrade available")
+
                 if (!silent) {
                     Toast.makeText(app, "当前版本是最新版", Toast.LENGTH_SHORT).show()
                 }

@@ -1,6 +1,7 @@
 package dev.zxilly.lib.upgrader
 
 import android.content.Context
+import android.util.Log
 import dev.zxilly.lib.upgrader.Utils.getCurrentVersionCode
 import kotlinx.serialization.json.Json
 import java.io.Serializable
@@ -28,7 +29,12 @@ fun String.toVersion(): Version {
 interface Checker {
 
     suspend fun shouldUpgrade(context: Context): Boolean {
-        return getCurrentVersionCode(context) < getLatestVersion().versionCode
+        val currentVersionCode = getCurrentVersionCode(context)
+        val latestVersion = getLatestVersion()
+
+        Log.i("Upgrader", "Current version: $currentVersionCode, Latest version: ${latestVersion.versionCode}")
+
+        return currentVersionCode < latestVersion.versionCode
     }
 
     suspend fun getLatestVersion(): Version
