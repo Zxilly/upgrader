@@ -32,4 +32,4 @@ jobs:
 
       - name: Request Jitpack Build
         run: |
-          curl -s -m 10 https://jitpack.io/com/github/Zxilly/upgrader/master-SNAPSHOT
+          curl -s -m 30 https://jitpack.io/com/github/Zxilly/upgrader/master-SNAPSHOT
