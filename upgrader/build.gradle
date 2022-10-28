@@ -80,7 +80,7 @@ afterEvaluate {
     publishToMavenLocal {
         def debugSuffix = "-debug"
         def releaseSuffix = "-release"
-        def versionName = android.defaultConfig.versionName
+        def versionName = "upgrader"
         publishing {
             publications {
                 LibraryRelease(MavenPublication) {
