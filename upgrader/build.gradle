@@ -37,6 +37,13 @@ android {
     testOptions {
         unitTests.returnDefaultValues = true
     }
+
+    publishing {
+        singleVariant("release") {
+            withSourcesJar()
+            withJavadocJar()
+        }
+    }
 }
 
 if (hasProperty('buildScan')) {
@@ -76,9 +83,6 @@ afterEvaluate {
         publications {
             release(MavenPublication) {
                 from components.release
-                groupId = 'com.github.Zxilly'
-                artifactId = 'upgrader'
-                version = 'master-SNAPSHOT'
             }
         }
     }

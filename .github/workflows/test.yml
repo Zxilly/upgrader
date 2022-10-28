@@ -32,4 +32,5 @@ jobs:
 
       - name: Request Jitpack Build
         run: |
-          curl -s -m 30 https://jitpack.io/com/github/Zxilly/upgrader/master-SNAPSHOT
+          COMMIT_ID=$(git rev-parse HEAD | cut -c1-10)
+          curl -s -m 30 https://jitpack.io/com/github/Zxilly/upgrader/$COMMIT_ID/build.log
