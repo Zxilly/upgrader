@@ -33,6 +33,6 @@ jobs:
       - name: Request Jitpack Build
         run: |
           # get from GITHUB_SHA, cut 10 char
-          COMMIT_ID=${{ github.sha }} | cut -c1-10
+          COMMIT_ID=$(echo ${{ github.sha }} | cut -c1-10)
           curl -m 120 https://jitpack.io/com/github/Zxilly/upgrader/$COMMIT_ID/build.log
 
