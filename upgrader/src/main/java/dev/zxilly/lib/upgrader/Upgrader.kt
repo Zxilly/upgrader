@@ -255,42 +255,10 @@ class Upgrader private constructor(private val app: Application, config: Config)
                     }
 
                     // if is foreground, install through notification
-                    if (mForegroundActivity.get() != null) {
-                        if (Utils.checkInstallPermission(app)) {
-                            val notification =
-                                NotificationCompat.Builder(
-                                    app,
-                                    Utils.NotificationConstants.CHANNEL_ID
-                                )
-                                    .setSmallIcon(R.drawable.install)
-                                    .setContentTitle("安装更新")
-                                    .setContentText("点击安装更新")
-                                    .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                                    .setContentIntent(
-                                        PendingIntent.getActivity(
-                                            app,
-                                            0,
-                                            Intent(Intent.ACTION_VIEW).apply {
-                                                setDataAndType(
-                                                    file.toProviderUri(app),
-                                                    "application/vnd.android.package-archive"
-                                                )
-                                                flags =
-                                                    Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
-                                            },
-                                            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                                        )
-                                    )
-                                    .build()
-                            notificationManager.notify(Random().nextInt(), notification)
-                        } else {
-                            tryInstall(installUri, activity)
-                        }
-                    } else {
-                        tryExecuteForegroundAction {
-                            tryInstall(installUri, activity)
-                        }
-
+                    tryExecuteForegroundAction {
+                        tryInstall(installUri, activity)
+                    }
+                    if (mForegroundActivity.get().get() == null) {
                         val notification =
                             NotificationCompat.Builder(app, Utils.NotificationConstants.CHANNEL_ID)
                                 .setSmallIcon(R.drawable.install)
@@ -311,7 +279,6 @@ class Upgrader private constructor(private val app: Application, config: Config)
                                 .build()
                         notificationManager.notify(Random().nextInt(), notification)
                     }
-
                 } else {
                     Log.i(TAG, "Download state ${it.state.name}")
                 }
