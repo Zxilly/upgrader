@@ -80,7 +80,9 @@ afterEvaluate {
     publishToMavenLocal {
         def debugSuffix = "-debug"
         def releaseSuffix = "-release"
-        def versionName = "upgrader"
+
+
+        def versionName = project.hasProperty('version') ? project.version : '1.0.0'
         publishing {
             publications {
                 LibraryRelease(MavenPublication) {
