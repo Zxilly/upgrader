@@ -25,6 +25,7 @@ import kotlinx.coroutines.sync.Mutex
 import java.lang.ref.WeakReference
 import java.util.*
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
 
 @Suppress("MemberVisibilityCanBePrivate", "unused", "SpellCheckingInspection")
 class Upgrader private constructor(private val app: Application, config: Config) :
@@ -33,9 +34,10 @@ class Upgrader private constructor(private val app: Application, config: Config)
     ) {
     private val repo = Repo(app)
     private val checkLock = Mutex()
-    private var mForegroundActivity: WeakReference<Activity?> = WeakReference(null)
+    private var mForegroundActivity: AtomicReference<WeakReference<Activity?>> =
+        AtomicReference(WeakReference(null))
 
-    private var pendingAction: Queue<() -> Unit> = LinkedList()
+    private var pendingAction: Queue<(Activity) -> Unit> = LinkedList()
 
     private val checker = config.checker
     private val ignoreActivities = config.ignoreActivities
@@ -59,18 +61,18 @@ class Upgrader private constructor(private val app: Application, config: Config)
             }
 
             override fun onActivityResumed(activity: Activity) {
-                mForegroundActivity = WeakReference(activity)
+                mForegroundActivity.set(WeakReference(activity))
 
                 if (!ignoreActivities.contains(activity::class.java)) {
                     while (pendingAction.isNotEmpty()) {
-                        pendingAction.remove().invoke()
+                        pendingAction.remove().invoke(activity)
                     }
                 }
             }
 
             override fun onActivityPaused(activity: Activity) {
                 if (mForegroundActivity.get() == activity) {
-                    mForegroundActivity = WeakReference(null)
+                    mForegroundActivity.set(WeakReference(null))
                 }
             }
 
@@ -87,9 +89,10 @@ class Upgrader private constructor(private val app: Application, config: Config)
         sInstance = this
     }
 
-    private fun tryExecuteForegroundAction(action: () -> Unit) {
-        if (mForegroundActivity.get() != null) {
-            action.invoke()
+    private fun tryExecuteForegroundAction(action: (Activity) -> Unit) {
+        val activity = mForegroundActivity.get().get()
+        if (activity != null) {
+            action.invoke(activity)
         } else {
             pendingAction.offer(action)
         }
@@ -128,7 +131,7 @@ class Upgrader private constructor(private val app: Application, config: Config)
                 Log.i(TAG, "Latest version is ${version.versionName} (${version.versionCode})")
 
                 tryExecuteForegroundAction {
-                    showNoticeDialog(version)
+                    showNoticeDialog(version, it)
                 }
 
             } else {
@@ -157,15 +160,15 @@ class Upgrader private constructor(private val app: Application, config: Config)
 
 
     @UiThread
-    private fun showNoticeDialog(version: Version) {
-        AlertDialog.Builder(mForegroundActivity.get()!!)
+    private fun showNoticeDialog(version: Version, activity: Activity) {
+        AlertDialog.Builder(activity)
             .setTitle("可用的应用更新")
             .setMessage(renderUpdateMessage(app, version))
             .setPositiveButton("更新") { _, _ ->
                 launch {
                     tryExecuteForegroundAction {
-                        mForegroundActivity.get()!!.runOnUiThread {
-                            tryDownLoad(version)
+                        activity.runOnUiThread {
+                            tryDownLoad(version, it)
                         }
                     }
                 }
@@ -179,18 +182,18 @@ class Upgrader private constructor(private val app: Application, config: Config)
                 repo.setCheckDeadLine(Date().apply { time += 24 * 60 * 60 * 1000 })
             }
             .show()
-            .also {
+            .also { alertDialog ->
                 if (!version.versionInfo.isNullOrBlank()) {
-                    it.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
-                        showVersionInfoDialog(version)
+                    alertDialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+                        showVersionInfoDialog(version, alertDialog.context)
                     }
                 }
             }
     }
 
     @UiThread
-    private fun showVersionInfoDialog(version: Version) {
-        AlertDialog.Builder(mForegroundActivity.get()!!)
+    private fun showVersionInfoDialog(version: Version, context: Context) {
+        AlertDialog.Builder(context)
             .setTitle("发行说明")
             .setMessage(version.versionInfo)
             .setPositiveButton("确定") { dialog, _ ->
@@ -200,11 +203,11 @@ class Upgrader private constructor(private val app: Application, config: Config)
     }
 
     @UiThread
-    private fun tryDownLoad(version: Version) {
+    private fun tryDownLoad(version: Version, activity: Activity) {
         val workerConstraint = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .build()
-        val workManager = WorkManager.getInstance(mForegroundActivity.get()!!)
+        val workManager = WorkManager.getInstance(activity)
         val notificationManager = NotificationManagerCompat.from(app)
 
         val worker = OneTimeWorkRequestBuilder<DownloadWorker>()
@@ -281,11 +284,11 @@ class Upgrader private constructor(private val app: Application, config: Config)
                                     .build()
                             notificationManager.notify(Random().nextInt(), notification)
                         } else {
-                            tryInstall(installUri)
+                            tryInstall(installUri, activity)
                         }
                     } else {
                         tryExecuteForegroundAction {
-                            tryInstall(installUri)
+                            tryInstall(installUri, activity)
                         }
 
                         val notification =
@@ -322,12 +325,12 @@ class Upgrader private constructor(private val app: Application, config: Config)
     }
 
     @UiThread
-    private fun tryInstall(installUri: String) {
+    private fun tryInstall(installUri: String, activity: Activity) {
         if (Utils.checkInstallPermission(app)) {
-            Utils.installApk(app, installUri)
+            Utils.installApk(activity, installUri)
         } else {
             var retry = true
-            AlertDialog.Builder(mForegroundActivity.get()!!)
+            AlertDialog.Builder(activity)
                 .setTitle("安装未知应用权限")
                 .setMessage("为了安全起见，设备设置为阻止安装从未知来源获取的应用。")
                 .setPositiveButton("设置") { _, _ ->
@@ -339,7 +342,7 @@ class Upgrader private constructor(private val app: Application, config: Config)
                     it.setCancelable(false)
                 }
             if (retry) {
-                pendingAction.offer { tryInstall(installUri) }
+                pendingAction.offer { tryInstall(installUri, it) }
             }
         }
     }

@@ -1,9 +1,11 @@
 package dev.zxilly.lib.upgrader
 
-import android.app.NotificationChannel
-import android.app.NotificationManager
+import android.app.*
+import android.content.ActivityNotFoundException
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageInstaller
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -24,10 +26,7 @@ import io.ktor.util.*
 import io.ktor.util.cio.*
 import io.ktor.utils.io.*
 import io.ktor.utils.io.core.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import java.io.File
 import kotlin.math.roundToInt
 
@@ -66,7 +65,7 @@ object Utils {
     }
 
     @OptIn(InternalAPI::class)
-    suspend fun getSavedApkFile(
+    suspend fun fetchApkFile(
         fileName: String,
         fileUrl: String,
         context: Context,
@@ -127,13 +126,59 @@ object Utils {
         }
     }
 
-    fun installApk(context: Context, installUri: String) {
-        val uri = installUri.toUri().toFile().toProviderUri(context)
+    @Suppress("DEPRECATION")
+    fun installApk(activity: Activity, installUri: String) {
+        val file = installUri.toUri().toFile()
+        val uri = file.toProviderUri(activity)
 
-        val intent = Intent(Intent.ACTION_VIEW)
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        intent.setDataAndType(uri, "application/vnd.android.package-archive")
-        context.startActivity(intent)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // show progress dialog
+            ProgressDialog(activity).apply {
+                setMessage("正在安装...")
+                setCancelable(false)
+                show()
+            }
+
+            CoroutineScope(Dispatchers.IO).launch {
+                val resolver = activity.contentResolver
+                resolver.openInputStream(uri)?.use { apkStream ->
+                    val length = file.length()
+                    if (length == 0L) {
+                        throw Exception("apk file not exist")
+                    }
+                    val params = PackageInstaller.SessionParams(
+                        PackageInstaller.SessionParams.MODE_FULL_INSTALL
+                    )
+                    params.setSize(length)
+                    val sessionId = activity.packageManager.packageInstaller.createSession(params)
+                    val session = activity.packageManager.packageInstaller.openSession(sessionId)
+                    session.openWrite("Upgrader", 0, length).use { out ->
+                        apkStream.copyTo(out)
+                        session.fsync(out)
+                    }
+                    val intent = Intent(activity, InstallReceiver::class.java)
+                    val pi = PendingIntent.getBroadcast(
+                        activity,
+                        sessionId,
+                        intent,
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    )
+                    session.commit(pi.intentSender)
+                    session.close()
+                }
+            }
+        } else {
+            val intent = Intent(Intent.ACTION_INSTALL_PACKAGE).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                setDataAndType(uri, "application/vnd.android.package-archive")
+            }
+
+            try {
+                activity.startActivity(intent)
+            } catch (e: ActivityNotFoundException) {
+                Log.e("TAG", "installApk: ", e)
+            }
+        }
     }
 
     fun requestInstallPermission(context: Context) {
@@ -154,7 +199,10 @@ object Utils {
         )?.let {
             val authority = "${context.packageName}.provider"
             FileProvider.getUriForFile(context, authority, this)
-        } ?: Uri.EMPTY
+        } ?: let {
+            Log.e("TAG", "toProviderUri: no package info")
+            Uri.EMPTY
+        }
     }
 
     fun <T> debounce(
@@ -187,8 +235,11 @@ object Utils {
             return flag
 
         } else {
-            val info = context.packageManager.getPackageArchiveInfo(file.absolutePath, PackageManager.GET_SIGNING_CERTIFICATES)
-                    ?: return false
+            val info = context.packageManager.getPackageArchiveInfo(
+                file.absolutePath,
+                PackageManager.GET_SIGNING_CERTIFICATES
+            )
+                ?: return false
             flag = info.longVersionCode == version.versionCode
             flag = flag and (info.versionName == version.versionName)
 
@@ -198,7 +249,7 @@ object Utils {
             )
                 .signingInfo
 
-            if(currentSignature.hasMultipleSigners()){
+            if (currentSignature.hasMultipleSigners()) {
                 return flag
             }
 
@@ -210,6 +261,18 @@ object Utils {
             flag = flag and currentSignatures.contains(apkSignature)
 
             return flag
+        }
+    }
+
+    class InstallReceiver : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            when (intent.getIntExtra(PackageInstaller.EXTRA_STATUS, -1)) {
+                PackageInstaller.STATUS_PENDING_USER_ACTION -> {
+                    val activityIntent = intent.getParcelableExtra<Intent>(Intent.EXTRA_INTENT)
+
+                    context.startActivity(activityIntent?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                }
+            }
         }
     }
 }

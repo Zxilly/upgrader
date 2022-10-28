@@ -11,7 +11,7 @@ import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import dev.zxilly.lib.upgrader.Utils.NotificationConstants
 import dev.zxilly.lib.upgrader.Utils.debounce
-import dev.zxilly.lib.upgrader.Utils.getSavedApkFile
+import dev.zxilly.lib.upgrader.Utils.fetchApkFile
 import dev.zxilly.lib.upgrader.Utils.requireNotificationChannel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -39,7 +39,7 @@ class DownloadWorker(
         }
 
         var fileName = version.downloadFileName
-        if (fileName.isNullOrBlank()){
+        if (fileName.isNullOrBlank()) {
             fileName = "${version.versionCode}-${version.versionName}.apk"
         }
 
@@ -68,7 +68,7 @@ class DownloadWorker(
                 notificationManager.notify(NotificationConstants.NOTIFICATION_ID, notification)
             }
         }
-        val file = getSavedApkFile(
+        val file = fetchApkFile(
             fileName = fileName,
             fileUrl = version.downloadUrl,
             context = context
@@ -79,14 +79,18 @@ class DownloadWorker(
         notificationManager.cancel(NotificationConstants.NOTIFICATION_ID)
 
         return if (file != null) {
-            Result.success(workDataOf(
-                Params.KEY_INSTALL_URI to file.toUri().toString(),
-                Params.KEY_VERSION to version.serialize()
-            ))
+            Result.success(
+                workDataOf(
+                    Params.KEY_INSTALL_URI to file.toUri().toString(),
+                    Params.KEY_VERSION to version.serialize()
+                )
+            )
         } else {
-            Result.failure(workDataOf(
-                Params.KEY_ERROR to "Download failed",
-            ))
+            Result.failure(
+                workDataOf(
+                    Params.KEY_ERROR to "Download failed",
+                )
+            )
         }
 
     }

@@ -11,7 +11,7 @@ data class Version(
 
     val downloadUrl: String,
     val downloadFileName: String?
-) : Serializable{
+) : Serializable {
     //encode to json string
     fun serialize(): String {
         return Json.encodeToString(serializer(), this)

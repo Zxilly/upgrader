@@ -48,6 +48,7 @@ class AppCenterChecker(appSecret: String) : Checker {
     private val endpoint =
         "https://api.appcenter.ms/v0.1/public/sdk/apps/${appSecret}/releases/latest"
 }
+
 private object AppCenterInfo {
     @Serializable
     data class Root(
