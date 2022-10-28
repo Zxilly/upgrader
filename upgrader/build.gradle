@@ -37,13 +37,6 @@ android {
     testOptions {
         unitTests.returnDefaultValues = true
     }
-
-    publishing {
-        singleVariant("release") {
-            withSourcesJar()
-            withJavadocJar()
-        }
-    }
 }
 
 if (hasProperty('buildScan')) {
@@ -78,11 +71,39 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
 }
 
+task sourceJar(type: Jar) {
+    from android.sourceSets.main.java.srcDirs
+    classifier "sources"
+}
+
 afterEvaluate {
-    publishing {
-        publications {
-            release(MavenPublication) {
-                from components.release
+    publishToMavenLocal {
+        def debugSuffix = "-debug"
+        def releaseSuffix = "-release"
+        def versionName = android.defaultConfig.versionName
+        publishing {
+            publications {
+                LibraryRelease(MavenPublication) {
+                    from components.release
+                    artifact(sourceJar)
+                    version versionName + releaseSuffix
+                }
+                LibraryDebug(MavenPublication) {
+                    from components.debug
+                    artifact(sourceJar)
+                    version versionName + debugSuffix
+                }
+            }
+            publications.all {
+                pom.withXml {
+                    asNode().dependencies.'*'
+                            .findAll() {
+                                it.scope.text() == 'runtime' &&
+                                        project.configurations.implementation.allDependencies.find {
+                                            dep -> dep.name == it.artifactId.text()
+                                        }
+                            }.each { it.scope*.value = 'compile'}
+                }
             }
         }
     }
