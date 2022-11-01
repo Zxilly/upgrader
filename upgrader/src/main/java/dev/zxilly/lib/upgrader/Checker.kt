@@ -25,6 +25,5 @@ fun String.toVersion(): Version {
 
 @Suppress("unused")
 interface Checker {
-
     suspend fun getLatestVersion(): Version
 }

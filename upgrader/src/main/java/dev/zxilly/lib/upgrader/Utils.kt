@@ -11,6 +11,7 @@ import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import android.util.Log
+import android.widget.Toast
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.FileProvider
 import androidx.core.net.toFile
@@ -264,16 +265,44 @@ object Utils {
         }
     }
 
+    fun isForeground(context: Context): Boolean {
+        val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        val appProcesses = activityManager.runningAppProcesses ?: return false
+        val packageName = context.packageName
+        appProcesses.forEach {
+            if (it.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND && it.processName == packageName) {
+                return true
+            }
+        }
+        return false
+    }
+
     class InstallReceiver : BroadcastReceiver() {
+        @Suppress("DEPRECATION")
         override fun onReceive(context: Context, intent: Intent) {
-            when (intent.getIntExtra(PackageInstaller.EXTRA_STATUS, -1)) {
+            when (intent.getIntExtra(PackageInstaller.EXTRA_STATUS, 998244353)) {
                 PackageInstaller.STATUS_PENDING_USER_ACTION -> {
                     val activityIntent = intent.getParcelableExtra<Intent>(Intent.EXTRA_INTENT)
-
-                    context.startActivity(activityIntent?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                    // if in foreground
+                    if (activityIntent != null) {
+                        if(isForeground(context)) {
+                            activityIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            context.startActivity(activityIntent)
+                        } else {
+                            Toast.makeText(context, "请保持应用在前台", Toast.LENGTH_SHORT).show()
+                        }
+                    } else {
+                        Log.e("TAG", "onReceive: no activity intent")
+                    }
                 }
             }
         }
     }
 }
+
+//public boolean foregrounded() {
+//    ActivityManager.RunningAppProcessInfo appProcessInfo = new ActivityManager.RunningAppProcessInfo();
+//    ActivityManager.getMyMemoryState(appProcessInfo);
+//    return (appProcessInfo.importance == IMPORTANCE_FOREGROUND || appProcessInfo.importance == IMPORTANCE_VISIBLE)
+//}
 
