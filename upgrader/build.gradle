@@ -80,12 +80,20 @@ dependencies {
 publishing {
     publications {
         release(MavenPublication) {
+            groupId = 'dev.zxilly.lib'
+            artifactId = 'upgrader-release'
+            version = '1.0'
+
             afterEvaluate {
                 from components.release
             }
         }
 
         debug(MavenPublication) {
+            groupId = 'dev.zxilly.lib'
+            artifactId = 'upgrader-debug'
+            version = '1.0'
+
             afterEvaluate {
                 from components.debug
             }
