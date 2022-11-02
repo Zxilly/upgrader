@@ -75,20 +75,19 @@ afterEvaluate {
     publish {
         def debugSuffix = "-debug"
         def releaseSuffix = "-release"
-
         def versionName = 'canary'
         publishing {
-            publications {
-                LibraryRelease(MavenPublication) {
-                    from components.release
-                    version versionName + releaseSuffix
-                }
-                LibraryDebug(MavenPublication) {
-                    from components.debug
-                    version versionName + debugSuffix
-                }
-            }
-
+//            publications {
+//                LibraryRelease(MavenPublication) {
+//                    from components.release
+//                    version versionName + releaseSuffix
+//                }
+//                LibraryDebug(MavenPublication) {
+//                    from components.debug
+//                    version versionName + debugSuffix
+//                }
+//            }
+            from components.release
             repositories {
                 maven {
                     name = "GitHubPackages"
