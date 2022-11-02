@@ -73,6 +73,7 @@ dependencies {
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.6.4")
 
     testImplementation("org.mockito:mockito-core:4.8.0")
+    testImplementation("org.mockito:mockito-inline:4.8.0")
     testImplementation("org.mockito.kotlin:mockito-kotlin:4.0.0")
 
     androidTestImplementation("androidx.test.ext:junit:1.1.3")
