@@ -53,7 +53,7 @@ dependencies {
     implementation "androidx.work:work-runtime:$work_version"
     implementation "androidx.work:work-runtime-ktx:$work_version"
 
-    def ktor_version = "2.1.2"
+    def ktor_version = "2.1.3"
     implementation "io.ktor:ktor-client-core:$ktor_version"
     implementation "io.ktor:ktor-client-okhttp:$ktor_version"
     implementation "io.ktor:ktor-client-content-negotiation:$ktor_version"
@@ -71,29 +71,32 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
 }
 
-task sourceJar(type: Jar) {
-    from android.sourceSets.main.java.srcDirs
-    classifier "sources"
-}
-
 afterEvaluate {
-    publishToMavenLocal {
+    publish {
         def debugSuffix = "-debug"
         def releaseSuffix = "-release"
 
-
-        def versionName = project.hasProperty('version') ? project.version : '1.0.0'
+        def versionName = 'canary'
         publishing {
             publications {
                 LibraryRelease(MavenPublication) {
                     from components.release
-                    artifact(sourceJar)
                     version versionName + releaseSuffix
                 }
                 LibraryDebug(MavenPublication) {
                     from components.debug
-                    artifact(sourceJar)
                     version versionName + debugSuffix
+                }
+            }
+
+            repositories {
+                maven {
+                    name = "GitHubPackages"
+                    url = "https://maven.pkg.github.com/Zxilly/Upgrader"
+                    credentials {
+                        username = System.getenv("GITHUB_ACTOR")
+                        password = System.getenv("GITHUB_TOKEN")
+                    }
                 }
             }
         }

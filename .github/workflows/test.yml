@@ -1,4 +1,4 @@
-name: CI with Gradle
+name: CI
 
 on:
   push:
@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  packages: write
 
 jobs:
   build:
@@ -18,7 +19,7 @@ jobs:
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
-          java-version: '17'
+          java-version: '18'
           distribution: 'temurin'
           cache: gradle
 
@@ -28,11 +29,4 @@ jobs:
       - name: Build with Gradle
         uses: gradle/gradle-build-action@v2
         with:
-          arguments: build test --scan
-
-      - name: Request Jitpack Build
-        run: |
-          # get from GITHUB_SHA, cut 10 char
-          COMMIT_ID=$(echo ${{ github.sha }} | cut -c1-10)
-          curl -m 120 https://jitpack.io/com/github/Zxilly/upgrader/$COMMIT_ID/build.log
-
+          arguments: build test publish --scan
