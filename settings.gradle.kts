@@ -1,3 +1,5 @@
+@file:Suppress("UnstableApiUsage")
+
 pluginManagement {
     repositories {
         gradlePluginPortal()
@@ -13,5 +15,4 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "Upgrader"
-include ':upgrader'
-include ':app'
+include(":upgrader")
