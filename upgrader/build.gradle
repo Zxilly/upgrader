@@ -92,7 +92,7 @@ afterEvaluate {
             repositories {
                 maven {
                     name = "GitHubPackages"
-                    url = "https://maven.pkg.github.com/Zxilly/Upgrader"
+                    url = "https://maven.pkg.github.com/Zxilly/upgrader"
                     credentials {
                         username = System.getenv("GITHUB_ACTOR")
                         password = System.getenv("GITHUB_TOKEN")
