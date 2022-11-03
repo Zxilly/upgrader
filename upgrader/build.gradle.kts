@@ -10,10 +10,15 @@ plugins {
 group = "dev.zxilly.lib"
 
 fun getGitHash(): String {
-    val process = Runtime.getRuntime().exec("git rev-parse --short HEAD")
+    val process = Runtime.getRuntime().exec(arrayOf("git", "rev-parse", "--short", "HEAD"))
     process.waitFor()
     return process.inputStream.bufferedReader().readText().trim()
 }
+
+fun getKey(key: String): String {
+    return System.getenv(key) ?: project.properties[key] as? String ?: ""
+}
+
 version = "nightly.${getGitHash()}"
 
 android {
@@ -30,13 +35,14 @@ android {
 
     buildTypes {
         release {
+            isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
         }
         debug {
-
+            isMinifyEnabled = false
         }
     }
     compileOptions {
@@ -95,8 +101,8 @@ publishing {
             name = "GitHubPackages"
             url = uri("https://maven.pkg.github.com/Zxilly/upgrader")
             credentials {
-                username = System.getenv("GITHUB_ACTOR")
-                password = System.getenv("GITHUB_TOKEN")
+                username = getKey("GITHUB_ACTOR")
+                password = getKey("GITHUB_TOKEN")
             }
         }
     }
