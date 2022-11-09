@@ -166,6 +166,7 @@ object Utils {
                     )
                     session.commit(pi.intentSender)
                     session.close()
+                    activity.finish()
                 }
             }
         } else {
@@ -280,20 +281,29 @@ object Utils {
     class InstallReceiver : BroadcastReceiver() {
         @Suppress("DEPRECATION")
         override fun onReceive(context: Context, intent: Intent) {
+            val message = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)
+            Log.d("Upgrader", "onReceive: $message")
+
             when (intent.getIntExtra(PackageInstaller.EXTRA_STATUS, 998244353)) {
                 PackageInstaller.STATUS_PENDING_USER_ACTION -> {
                     val activityIntent = intent.getParcelableExtra<Intent>(Intent.EXTRA_INTENT)
                     // if in foreground
                     if (activityIntent != null) {
-                        if(isForeground(context)) {
+                        if (isForeground(context)) {
                             activityIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                             context.startActivity(activityIntent)
                         } else {
                             Toast.makeText(context, "请保持应用在前台", Toast.LENGTH_SHORT).show()
                         }
                     } else {
-                        Log.e("TAG", "onReceive: no activity intent")
+                        Log.e("Upgrader", "onReceive: no activity intent")
                     }
+                }
+                PackageInstaller.STATUS_SUCCESS -> {
+                    Toast.makeText(context, "安装成功", Toast.LENGTH_SHORT).show()
+                }
+                else -> {
+                    Toast.makeText(context, "安装失败", Toast.LENGTH_SHORT).show()
                 }
             }
         }
