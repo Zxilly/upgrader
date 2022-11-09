@@ -283,9 +283,11 @@ object Utils {
         override fun onReceive(context: Context, intent: Intent) {
             val message = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)
             Log.d("Upgrader", "onReceive: $message")
+            val status = intent.getIntExtra(PackageInstaller.EXTRA_STATUS, 998244353)
 
-            when (intent.getIntExtra(PackageInstaller.EXTRA_STATUS, 998244353)) {
+            when (status) {
                 PackageInstaller.STATUS_PENDING_USER_ACTION -> {
+                    Log.d("Upgrader", "onReceive: STATUS_PENDING_USER_ACTION")
                     val activityIntent = intent.getParcelableExtra<Intent>(Intent.EXTRA_INTENT)
                     // if in foreground
                     if (activityIntent != null) {
@@ -300,9 +302,33 @@ object Utils {
                     }
                 }
                 PackageInstaller.STATUS_SUCCESS -> {
+                    Log.d("Upgrader", "onReceive: STATUS_SUCCESS")
                     Toast.makeText(context, "安装成功", Toast.LENGTH_SHORT).show()
                 }
                 else -> {
+                    when(status){
+                        PackageInstaller.STATUS_FAILURE_ABORTED -> {
+                            Log.d("Upgrader", "onReceive: STATUS_FAILURE_ABORTED")
+                        }
+                        PackageInstaller.STATUS_FAILURE_BLOCKED -> {
+                            Log.d("Upgrader", "onReceive: STATUS_FAILURE_BLOCKED")
+                        }
+                        PackageInstaller.STATUS_FAILURE_CONFLICT -> {
+                            Log.d("Upgrader", "onReceive: STATUS_FAILURE_CONFLICT")
+                        }
+                        PackageInstaller.STATUS_FAILURE_INCOMPATIBLE -> {
+                            Log.d("Upgrader", "onReceive: STATUS_FAILURE_INCOMPATIBLE")
+                        }
+                        PackageInstaller.STATUS_FAILURE_INVALID -> {
+                            Log.d("Upgrader", "onReceive: STATUS_FAILURE_INVALID")
+                        }
+                        PackageInstaller.STATUS_FAILURE_STORAGE -> {
+                            Log.d("Upgrader", "onReceive: STATUS_FAILURE_STORAGE")
+                        }
+                        else -> {
+                            Log.d("Upgrader", "onReceive: unknown status $status")
+                        }
+                    }
                     Toast.makeText(context, "安装失败", Toast.LENGTH_SHORT).show()
                 }
             }
