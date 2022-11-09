@@ -132,44 +132,43 @@ object Utils {
         val file = installUri.toUri().toFile()
         val uri = file.toProviderUri(activity)
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            // show progress dialog
-            ProgressDialog(activity).apply {
-                setMessage("正在安装...")
-                setCancelable(false)
-                show()
-            }
-
-            CoroutineScope(Dispatchers.IO).launch {
-                val resolver = activity.contentResolver
-                resolver.openInputStream(uri)?.use { apkStream ->
-                    val length = file.length()
-                    if (length == 0L) {
-                        throw Exception("apk file not exist")
-                    }
-                    val params = PackageInstaller.SessionParams(
-                        PackageInstaller.SessionParams.MODE_FULL_INSTALL
-                    )
-                    params.setSize(length)
-                    val sessionId = activity.packageManager.packageInstaller.createSession(params)
-                    val session = activity.packageManager.packageInstaller.openSession(sessionId)
-                    session.openWrite("Upgrader", 0, length).use { out ->
-                        apkStream.copyTo(out)
-                        session.fsync(out)
-                    }
-                    val intent = Intent(activity, InstallReceiver::class.java)
-                    val pi = PendingIntent.getBroadcast(
-                        activity,
-                        sessionId,
-                        intent,
-                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                    )
-                    session.commit(pi.intentSender)
-                    session.close()
-                    activity.finish()
-                }
-            }
-        } else {
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+//            // show progress dialog
+//            ProgressDialog(activity).apply {
+//                setMessage("正在安装...")
+//                setCancelable(false)
+//                show()
+//            }
+//
+//            CoroutineScope(Dispatchers.IO).launch {
+//                val resolver = activity.contentResolver
+//                resolver.openInputStream(uri)?.use { apkStream ->
+//                    val length = file.length()
+//                    if (length == 0L) {
+//                        throw Exception("apk file not exist")
+//                    }
+//                    val params = PackageInstaller.SessionParams(
+//                        PackageInstaller.SessionParams.MODE_FULL_INSTALL
+//                    )
+//                    params.setSize(length)
+//                    val sessionId = activity.packageManager.packageInstaller.createSession(params)
+//                    val session = activity.packageManager.packageInstaller.openSession(sessionId)
+//                    session.openWrite("Upgrader", 0, length).use { out ->
+//                        apkStream.copyTo(out)
+//                        session.fsync(out)
+//                    }
+//                    val intent = Intent(activity, InstallReceiver::class.java)
+//                    val pi = PendingIntent.getBroadcast(
+//                        activity,
+//                        sessionId,
+//                        intent,
+//                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+//                    )
+//                    session.commit(pi.intentSender)
+//                    session.close()
+//                }
+//            }
+//        } else {
             val intent = Intent(Intent.ACTION_INSTALL_PACKAGE).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 setDataAndType(uri, "application/vnd.android.package-archive")
@@ -179,8 +178,9 @@ object Utils {
                 activity.startActivity(intent)
             } catch (e: ActivityNotFoundException) {
                 Log.e("TAG", "installApk: ", e)
+                Toast.makeText(activity, "安装失败", Toast.LENGTH_SHORT).show()
             }
-        }
+//        }
     }
 
     fun requestInstallPermission(context: Context) {
@@ -267,7 +267,8 @@ object Utils {
     }
 
     fun isForeground(context: Context): Boolean {
-        val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        val activityManager =
+            context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         val appProcesses = activityManager.runningAppProcesses ?: return false
         val packageName = context.packageName
         appProcesses.forEach {
@@ -306,7 +307,7 @@ object Utils {
                     Toast.makeText(context, "安装成功", Toast.LENGTH_SHORT).show()
                 }
                 else -> {
-                    when(status){
+                    when (status) {
                         PackageInstaller.STATUS_FAILURE_ABORTED -> {
                             Log.d("Upgrader", "onReceive: STATUS_FAILURE_ABORTED")
                         }
