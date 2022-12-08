@@ -20,6 +20,10 @@ class GitHubReleaseMetadataChecker(private val config: GitHubRMCConfig) :
     Checker {
     override suspend fun getLatestVersion(): Version {
         val client = HttpClient(OkHttp) {
+            install(UserAgent) {
+                agent = "Upgrader"
+            }
+
             install(ContentNegotiation) {
                 val j = Json {
                     prettyPrint = true
@@ -32,9 +36,6 @@ class GitHubReleaseMetadataChecker(private val config: GitHubRMCConfig) :
             }
             install(HttpRequestRetry) {
                 retryOnException(maxRetries = 3)
-            }
-            defaultRequest {
-                header("User-Agent", "Zxilly-Upgrader")
             }
         }
 

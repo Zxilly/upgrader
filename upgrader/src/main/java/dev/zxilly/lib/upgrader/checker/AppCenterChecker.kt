@@ -18,8 +18,8 @@ class AppCenterChecker(appSecret: String) : Checker {
 
     override suspend fun getLatestVersion(): Version {
         val client = HttpClient(OkHttp) {
-            defaultRequest {
-                header("User-Agent", "Zxilly-Upgrader")
+            install(UserAgent) {
+                agent = "Upgrader"
             }
             install(HttpRequestRetry) {
                 retryOnException(maxRetries = 3)
