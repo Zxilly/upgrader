@@ -31,9 +31,6 @@ class DownloadWorker(
 
         val version = versionString.toVersion()
 
-        Log.d("TAG", "doWork: ${version.downloadUrl} | ${version.downloadFileName}")
-
-
         if (version.downloadUrl.isBlank()) {
             return Result.failure(workDataOf(Params.KEY_ERROR to "No file url provided"))
         }
@@ -42,6 +39,8 @@ class DownloadWorker(
         if (fileName.isNullOrBlank()) {
             fileName = "${version.versionCode}-${version.versionName}.apk"
         }
+
+        Log.d("TAG", "doWork: ${version.downloadUrl} | ${version.downloadFileName}")
 
         requireNotificationChannel(context)
 
@@ -62,7 +61,7 @@ class DownloadWorker(
             )
 
 
-        val notificationDebounce = debounce<Int>(scope = CoroutineScope(Dispatchers.IO)) {
+        val notificationDebounce = debounce<Int>(scope = CoroutineScope(Dispatchers.Default)) {
             if (it != -1) {
                 val notification = getBuilder().setProgress(100, it, false).build()
                 notificationManager.notify(NotificationConstants.NOTIFICATION_ID, notification)

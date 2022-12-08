@@ -15,7 +15,6 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_path" />
         </provider>
-
-        <receiver android:name=".Utils$InstallReceiver" />
     </application>
+
 </manifest>

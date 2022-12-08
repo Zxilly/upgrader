@@ -1,4 +1,4 @@
-package dev.zxilly.lib.upgrader
+package dev.zxilly.lib.upgrader.repo
 
 import android.content.Context
 import java.util.*

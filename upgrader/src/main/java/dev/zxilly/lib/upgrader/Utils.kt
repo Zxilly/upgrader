@@ -2,10 +2,8 @@ package dev.zxilly.lib.upgrader
 
 import android.app.*
 import android.content.ActivityNotFoundException
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageInstaller
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -78,13 +76,24 @@ object Utils {
             }
         }
 
+        val targetFolder = File(context.cacheDir, "upgrader")
+        if (!targetFolder.exists()) {
+            targetFolder.mkdirs()
+        } else {
+            if (!targetFolder.isDirectory) {
+                targetFolder.delete()
+                targetFolder.mkdirs()
+            }
+
+            targetFolder.listFiles()?.forEach {
+                it.deleteRecursively()
+            }
+        }
+
         val target = File(
-            context.cacheDir,
+            targetFolder,
             fileName
         )
-        if (target.exists()) {
-            target.delete()
-        }
 
         val ret = runCatching {
             val response = client.get(fileUrl) {
@@ -132,55 +141,17 @@ object Utils {
         val file = installUri.toUri().toFile()
         val uri = file.toProviderUri(activity)
 
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-//            // show progress dialog
-//            ProgressDialog(activity).apply {
-//                setMessage("正在安装...")
-//                setCancelable(false)
-//                show()
-//            }
-//
-//            CoroutineScope(Dispatchers.IO).launch {
-//                val resolver = activity.contentResolver
-//                resolver.openInputStream(uri)?.use { apkStream ->
-//                    val length = file.length()
-//                    if (length == 0L) {
-//                        throw Exception("apk file not exist")
-//                    }
-//                    val params = PackageInstaller.SessionParams(
-//                        PackageInstaller.SessionParams.MODE_FULL_INSTALL
-//                    )
-//                    params.setSize(length)
-//                    val sessionId = activity.packageManager.packageInstaller.createSession(params)
-//                    val session = activity.packageManager.packageInstaller.openSession(sessionId)
-//                    session.openWrite("Upgrader", 0, length).use { out ->
-//                        apkStream.copyTo(out)
-//                        session.fsync(out)
-//                    }
-//                    val intent = Intent(activity, InstallReceiver::class.java)
-//                    val pi = PendingIntent.getBroadcast(
-//                        activity,
-//                        sessionId,
-//                        intent,
-//                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-//                    )
-//                    session.commit(pi.intentSender)
-//                    session.close()
-//                }
-//            }
-//        } else {
-            val intent = Intent(Intent.ACTION_INSTALL_PACKAGE).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                setDataAndType(uri, "application/vnd.android.package-archive")
-            }
+        val intent = Intent(Intent.ACTION_INSTALL_PACKAGE).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            setDataAndType(uri, "application/vnd.android.package-archive")
+        }
 
-            try {
-                activity.startActivity(intent)
-            } catch (e: ActivityNotFoundException) {
-                Log.e("TAG", "installApk: ", e)
-                Toast.makeText(activity, "安装失败", Toast.LENGTH_SHORT).show()
-            }
-//        }
+        try {
+            activity.startActivity(intent)
+        } catch (e: ActivityNotFoundException) {
+            Log.e("TAG", "installApk: ", e)
+            Toast.makeText(activity, "安装失败", Toast.LENGTH_SHORT).show()
+        }
     }
 
     fun requestInstallPermission(context: Context) {
@@ -190,6 +161,8 @@ object Utils {
             }
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             context.startActivity(intent)
+        } else {
+            Log.w("TAG", "requestInstallPermission: no need")
         }
     }
 
@@ -229,10 +202,22 @@ object Utils {
         var flag: Boolean
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
             val info = context.packageManager.getPackageArchiveInfo(file.absolutePath, 0)
-                ?: return false
+                ?: let {
+                    Log.e("TAG", "checkApk: no package info")
+                    return false
+                }
 
             flag = info.versionCode.toLong() == version.versionCode
+
+            if (!flag) {
+                Log.e("TAG", "checkApk: versionCode not match ${info.versionCode} ${version.versionCode}")
+            }
+
             flag = flag and (info.versionName != version.versionName)
+
+            if (!flag) {
+                Log.e("TAG", "checkApk: versionName not match ${info.versionName} ${version.versionName}")
+            }
 
             return flag
 
@@ -241,9 +226,20 @@ object Utils {
                 file.absolutePath,
                 PackageManager.GET_SIGNING_CERTIFICATES
             )
-                ?: return false
+                ?: let {
+                    Log.e("TAG", "checkApk: no package info")
+                    return false
+                }
             flag = info.longVersionCode == version.versionCode
+            if (!flag) {
+                Log.e("TAG", "checkApk: versionCode not match ${info.longVersionCode} ${version.versionCode}")
+            }
+
             flag = flag and (info.versionName == version.versionName)
+
+            if (!flag) {
+                Log.e("TAG", "checkApk: versionName not match ${info.versionName} ${version.versionName}")
+            }
 
             val currentSignature = context.packageManager.getPackageInfo(
                 context.packageName,
@@ -252,6 +248,7 @@ object Utils {
                 .signingInfo
 
             if (currentSignature.hasMultipleSigners()) {
+                Log.w("TAG", "checkApk: has multiple signers, can't check signature")
                 return flag
             }
 
@@ -261,6 +258,10 @@ object Utils {
             val apkSignature = info.signingInfo.signingCertificateHistory[0].toCharsString()
 
             flag = flag and currentSignatures.contains(apkSignature)
+
+            if (!flag) {
+                Log.e("TAG", "checkApk: signature not match")
+            }
 
             return flag
         }
@@ -277,63 +278,6 @@ object Utils {
             }
         }
         return false
-    }
-
-    class InstallReceiver : BroadcastReceiver() {
-        @Suppress("DEPRECATION")
-        override fun onReceive(context: Context, intent: Intent) {
-            val message = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)
-            Log.d("Upgrader", "onReceive: $message")
-            val status = intent.getIntExtra(PackageInstaller.EXTRA_STATUS, 998244353)
-
-            when (status) {
-                PackageInstaller.STATUS_PENDING_USER_ACTION -> {
-                    Log.d("Upgrader", "onReceive: STATUS_PENDING_USER_ACTION")
-                    val activityIntent = intent.getParcelableExtra<Intent>(Intent.EXTRA_INTENT)
-                    // if in foreground
-                    if (activityIntent != null) {
-                        if (isForeground(context)) {
-                            activityIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            context.startActivity(activityIntent)
-                        } else {
-                            Toast.makeText(context, "请保持应用在前台", Toast.LENGTH_SHORT).show()
-                        }
-                    } else {
-                        Log.e("Upgrader", "onReceive: no activity intent")
-                    }
-                }
-                PackageInstaller.STATUS_SUCCESS -> {
-                    Log.d("Upgrader", "onReceive: STATUS_SUCCESS")
-                    Toast.makeText(context, "安装成功", Toast.LENGTH_SHORT).show()
-                }
-                else -> {
-                    when (status) {
-                        PackageInstaller.STATUS_FAILURE_ABORTED -> {
-                            Log.d("Upgrader", "onReceive: STATUS_FAILURE_ABORTED")
-                        }
-                        PackageInstaller.STATUS_FAILURE_BLOCKED -> {
-                            Log.d("Upgrader", "onReceive: STATUS_FAILURE_BLOCKED")
-                        }
-                        PackageInstaller.STATUS_FAILURE_CONFLICT -> {
-                            Log.d("Upgrader", "onReceive: STATUS_FAILURE_CONFLICT")
-                        }
-                        PackageInstaller.STATUS_FAILURE_INCOMPATIBLE -> {
-                            Log.d("Upgrader", "onReceive: STATUS_FAILURE_INCOMPATIBLE")
-                        }
-                        PackageInstaller.STATUS_FAILURE_INVALID -> {
-                            Log.d("Upgrader", "onReceive: STATUS_FAILURE_INVALID")
-                        }
-                        PackageInstaller.STATUS_FAILURE_STORAGE -> {
-                            Log.d("Upgrader", "onReceive: STATUS_FAILURE_STORAGE")
-                        }
-                        else -> {
-                            Log.d("Upgrader", "onReceive: unknown status $status")
-                        }
-                    }
-                    Toast.makeText(context, "安装失败", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
     }
 }
 

@@ -7,7 +7,6 @@ import android.app.Application
 import android.app.Application.ActivityLifecycleCallbacks
 import android.app.PendingIntent
 import android.content.Context
-import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
@@ -17,7 +16,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.net.toFile
 import androidx.core.net.toUri
 import androidx.work.*
-import dev.zxilly.lib.upgrader.Utils.toProviderUri
+import dev.zxilly.lib.upgrader.repo.Repo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -37,7 +36,7 @@ class Upgrader private constructor(private val app: Application, config: Config)
     private var mForegroundActivity: AtomicReference<WeakReference<Activity?>> =
         AtomicReference(WeakReference(null))
 
-    private var pendingAction: Queue<(Activity) -> Unit> = LinkedList()
+    private var pendingAction: AtomicReference<((Activity) -> Unit)?> = AtomicReference(null)
 
     private val checker = config.checker
     private val ignoreActivities = config.ignoreActivities
@@ -64,9 +63,9 @@ class Upgrader private constructor(private val app: Application, config: Config)
                 mForegroundActivity.set(WeakReference(activity))
 
                 if (!ignoreActivities.contains(activity::class.java)) {
-                    while (pendingAction.isNotEmpty()) {
-                        pendingAction.remove().invoke(activity)
-                    }
+                    pendingAction
+                        .updateAndGet { null }
+                        ?.invoke(activity)
                 }
             }
 
@@ -94,7 +93,7 @@ class Upgrader private constructor(private val app: Application, config: Config)
         if (activity != null) {
             action.invoke(activity)
         } else {
-            pendingAction.offer(action)
+            pendingAction.set(action)
         }
     }
 
@@ -167,7 +166,7 @@ class Upgrader private constructor(private val app: Application, config: Config)
             .setPositiveButton("更新") { _, _ ->
                 launch {
                     tryExecuteForegroundAction {
-                        activity.runOnUiThread {
+                        it.runOnUiThread {
                             tryDownLoad(version, it)
                         }
                     }
@@ -254,11 +253,23 @@ class Upgrader private constructor(private val app: Application, config: Config)
                         return
                     }
 
-                    // if is foreground, install through notification
-                    tryExecuteForegroundAction {
-                        tryInstall(installUri, activity)
-                    }
-                    if (mForegroundActivity.get().get() == null) {
+                    if (Utils.isForeground(activity)) {
+                        AlertDialog.Builder(activity)
+                            .setTitle("下载完成")
+                            .setMessage("是否安装？")
+                            .setPositiveButton("安装") { _, _ ->
+                                tryInstall(installUri, activity)
+                            }
+                            .setNegativeButton("取消") { _, _ ->
+                            }
+                            .show()
+                            .also {
+                                it.setCancelable(false)
+                            }
+                    } else {
+                        pendingAction.set {
+                            tryInstall(installUri, it)
+                        }
                         val notification =
                             NotificationCompat.Builder(app, Utils.NotificationConstants.CHANNEL_ID)
                                 .setSmallIcon(R.drawable.install)
@@ -296,22 +307,27 @@ class Upgrader private constructor(private val app: Application, config: Config)
         if (Utils.checkInstallPermission(app)) {
             Utils.installApk(activity, installUri)
         } else {
-            var retry = true
-            AlertDialog.Builder(activity)
-                .setTitle("安装未知应用权限")
-                .setMessage("为了安全起见，设备设置为阻止安装从未知来源获取的应用。")
-                .setPositiveButton("设置") { _, _ ->
-                    Utils.requestInstallPermission(app)
-                }
-                .setNegativeButton("取消") { _, _ -> retry = false }
-                .show()
-                .also {
-                    it.setCancelable(false)
-                }
-            if (retry) {
-                pendingAction.offer { tryInstall(installUri, it) }
+            showPermissionDialog(activity)
+            pendingAction.set {
+                tryInstall(installUri, it)
             }
         }
+    }
+
+    private fun showPermissionDialog(activity: Activity) {
+        AlertDialog.Builder(activity)
+            .setTitle("安装未知应用权限")
+            .setMessage("为了安全起见，设备设置为阻止安装从未知来源获取的应用。")
+            .setPositiveButton("设置") { _, _ ->
+                Utils.requestInstallPermission(activity)
+            }
+            .setNegativeButton("取消") { _, _ ->
+                pendingAction.set(null)
+            }
+            .show()
+            .also {
+                it.setCancelable(false)
+            }
     }
 
     companion object {

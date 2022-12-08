@@ -19,7 +19,16 @@ fun getKey(key: String): String {
     return System.getenv(key) ?: project.properties[key] as? String ?: ""
 }
 
-version = "nightly.${getGitHash()}"
+
+if (System.getenv("CI") != null) {
+    // action type
+    val type = System.getenv("GITHUB_EVENT_NAME")
+    version = when (type) {
+        "push" -> "nightly.${getGitHash()}"
+        "release" -> System.getenv("GITHUB_REF").split("/").last()
+        else -> "snapshot"
+    }
+}
 
 android {
     namespace = "dev.zxilly.lib.upgrader"
@@ -75,15 +84,15 @@ dependencies {
 
     testImplementation("junit:junit:4.13.2")
 
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:1.7.20")
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:1.7.21")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.6.4")
 
     testImplementation("org.mockito:mockito-core:4.8.0")
     testImplementation("org.mockito:mockito-inline:4.8.0")
     testImplementation("org.mockito.kotlin:mockito-kotlin:4.0.0")
 
-    androidTestImplementation("androidx.test.ext:junit:1.1.3")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.4.0")
+    androidTestImplementation("androidx.test.ext:junit:1.1.4")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.0")
 }
 
 publishing {

@@ -6,6 +6,7 @@ import android.content.SharedPreferences
 import android.util.Log
 import dev.zxilly.lib.upgrader.Upgrader.Companion.Config
 import dev.zxilly.lib.upgrader.checker.TestChecker
+import dev.zxilly.lib.upgrader.repo.Repo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
