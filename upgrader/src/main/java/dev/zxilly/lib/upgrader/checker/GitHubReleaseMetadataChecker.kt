@@ -37,6 +37,12 @@ class GitHubReleaseMetadataChecker(private val config: GitHubRMCConfig) :
             install(HttpRequestRetry) {
                 retryOnException(maxRetries = 3)
             }
+
+            if (config.token != null) {
+                defaultRequest {
+                    header("Authorization", "token ${config.token}")
+                }
+            }
         }
 
         val releaseInfo: List<GitHubReleaseInfo.Root> =
@@ -83,8 +89,8 @@ data class GitHubRMCConfig(
     val owner: String,
     val repo: String,
     val upgradeChannel: UpgradeChannel = UpgradeChannel.RELEASE,
-
-    ) {
+    val token: String? = null
+) {
     enum class UpgradeChannel {
         RELEASE, PRE_RELEASE
     }

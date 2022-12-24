@@ -9,13 +9,17 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class CheckerTest {
+
+    private val githubToken = System.getenv("GITHUB_TOKEN")
+
     @Test
     fun gitHubReleaseMetadataCheckerInit() = runTest {
         GitHubReleaseMetadataChecker(
             GitHubRMCConfig(
                 "ZNotify",
                 "android",
-                GitHubRMCConfig.UpgradeChannel.PRE_RELEASE
+                GitHubRMCConfig.UpgradeChannel.PRE_RELEASE,
+                githubToken
             )
         )
     }
@@ -26,7 +30,8 @@ class CheckerTest {
             GitHubRMCConfig(
                 "ZNotify",
                 "android",
-                GitHubRMCConfig.UpgradeChannel.PRE_RELEASE
+                GitHubRMCConfig.UpgradeChannel.PRE_RELEASE,
+                githubToken
             )
         ).getLatestVersion()
     }
