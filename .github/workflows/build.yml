@@ -32,6 +32,12 @@ jobs:
       - name: Build with Gradle
         uses: gradle/gradle-build-action@v2
         with:
-          arguments: build test publish --scan
+          arguments: build test --scan
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to GitHub Packages
+        if: github.event_name != 'pull_request'
+        uses: gradle/gradle-build-action@v2
+        with:
+          arguments: publish --scan
