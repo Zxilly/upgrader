@@ -1,14 +1,10 @@
 @file:Suppress("UnstableApiUsage")
 
 plugins {
-    id("com.android.library") version "7.3.1"
-
+    id("com.android.library")
+    id("org.jetbrains.kotlin.android")
     id("maven-publish")
-
-    val ktVersion = "1.8.0"
-
-    id("org.jetbrains.kotlin.android") version ktVersion
-    id("org.jetbrains.kotlin.plugin.serialization") version ktVersion
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.7.22"
 }
 
 group = "dev.zxilly.lib"
@@ -91,9 +87,9 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:1.7.21")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.6.4")
 
-    testImplementation("org.mockito:mockito-core:4.10.0")
-    testImplementation("org.mockito:mockito-inline:4.10.0")
-    testImplementation("org.mockito.kotlin:mockito-kotlin:4.1.0")
+    testImplementation("org.mockito:mockito-core:4.8.0")
+    testImplementation("org.mockito:mockito-inline:4.8.0")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:4.0.0")
 
     androidTestImplementation("androidx.test.ext:junit:1.1.4")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.0")
