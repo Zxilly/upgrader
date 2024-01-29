@@ -59,6 +59,7 @@ android {
     }
     kotlinOptions {
         jvmTarget = "11"
+        freeCompilerArgs += "-Xstring-concat=inline"
     }
 
     publishing {
