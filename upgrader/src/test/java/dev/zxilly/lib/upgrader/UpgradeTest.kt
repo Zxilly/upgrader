@@ -50,7 +50,7 @@ class UpgradeTest {
         val app = mock<Application> {
             on { getSharedPreferences("upgrader", Context.MODE_PRIVATE) } doReturn sharedPref
         }
-        Mockito.mockStatic(Log::class.java).use { mock ->
+        Mockito.mockStatic(Log::class.java).use {
             whenever(Log.d(any(), any())).thenReturn(0)
             whenever(Log.e(any(), any())).thenReturn(0)
             Upgrader.init(app, Config(TestChecker(), emptyList()))
