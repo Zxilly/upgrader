@@ -26,7 +26,7 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 
-@Suppress("MemberVisibilityCanBePrivate", "unused", "SpellCheckingInspection")
+@Suppress("MemberVisibilityCanBePrivate", "unused")
 class Upgrader private constructor(private val app: Application, config: Config) :
     CoroutineScope by CoroutineScope(
         Dispatchers.Main
@@ -215,7 +215,7 @@ class Upgrader private constructor(private val app: Application, config: Config)
             .setInitialDelay(1, TimeUnit.MILLISECONDS)
             .setBackoffCriteria(
                 BackoffPolicy.LINEAR,
-                OneTimeWorkRequest.MIN_BACKOFF_MILLIS,
+                WorkRequest.MIN_BACKOFF_MILLIS,
                 TimeUnit.MILLISECONDS
             )
             .setInputData(
