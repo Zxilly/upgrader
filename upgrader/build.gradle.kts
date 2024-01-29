@@ -36,7 +36,6 @@ android {
 
     defaultConfig {
         minSdk = 25
-        targetSdk = 33
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
@@ -55,11 +54,11 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_1_11
+        targetCompatibility = JavaVersion.VERSION_1_11
     }
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "1.11"
     }
 
     publishing {
