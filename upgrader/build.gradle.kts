@@ -20,7 +20,7 @@ fun getKey(key: String): String {
 }
 
 
-if (System.getenv("CI") != null) {
+if (System.getenv("CI") != null && System.getenv("GITHUB_ACTIONS") != null) {
     // action type
     val type = System.getenv("GITHUB_EVENT_NAME")
     version = when (type) {
