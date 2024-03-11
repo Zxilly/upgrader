@@ -32,7 +32,7 @@ if (System.getenv("CI") != null) {
 
 android {
     namespace = "dev.zxilly.lib.upgrader"
-    compileSdk = 33
+    compileSdk = 34
 
     defaultConfig {
         minSdk = 25
