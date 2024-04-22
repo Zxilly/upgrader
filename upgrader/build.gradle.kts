@@ -70,7 +70,7 @@ android {
 }
 
 dependencies {
-    implementation("androidx.core:core-ktx:1.12.0")
+    implementation("androidx.core:core-ktx:1.13.0")
 
     val workVersion = "2.9.0"
     implementation("androidx.work:work-runtime:$workVersion")
