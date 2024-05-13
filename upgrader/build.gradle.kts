@@ -84,7 +84,7 @@ dependencies {
 
     testImplementation("junit:junit:4.13.2")
 
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:1.9.23")
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:1.9.24")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.0")
 
     testImplementation("org.mockito:mockito-core:5.11.0")
