@@ -15,19 +15,6 @@ dependencyResolutionManagement {
     }
 }
 
-plugins {
-    `gradle-enterprise`
-}
-
-gradleEnterprise {
-    buildScan {
-        termsOfServiceAgree = "yes"
-        termsOfServiceUrl = "https://gradle.com/terms-of-service"
-        publishAlwaysIf(System.getenv("CI") != null)
-        publishOnFailure()
-    }
-}
-
 rootProject.name = "Upgrader"
 include(":upgrader")
 
