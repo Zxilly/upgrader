@@ -30,7 +30,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build with Gradle
-        uses: gradle/actions/setup-gradle@v3
+        uses: gradle/actions/setup-gradle@v4
         with:
           arguments: build test --scan
         env:
@@ -38,7 +38,7 @@ jobs:
 
       - name: Publish to GitHub Packages
         if: github.event_name != 'pull_request'
-        uses: gradle/actions/setup-gradle@v3
+        uses: gradle/actions/setup-gradle@v4
         with:
           arguments: publish --scan
         env:
