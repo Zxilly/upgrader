@@ -34,7 +34,7 @@ jobs:
 
       - name: Run Test
         run: |
-          ./gradlew arguments: build test
+          ./gradlew build test
 
       - name: Publish to GitHub Packages
         if: github.event_name != 'pull_request'
