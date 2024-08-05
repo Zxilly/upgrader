@@ -31,15 +31,14 @@ jobs:
 
       - name: Build with Gradle
         uses: gradle/actions/setup-gradle@v4
-        with:
-          arguments: build test --scan
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run Test
+        run: |
+          ./gradlew arguments: build test
 
       - name: Publish to GitHub Packages
         if: github.event_name != 'pull_request'
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          arguments: publish --scan
+        run: |
+          ./gradlew publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
