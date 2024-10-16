@@ -15,16 +15,12 @@ import androidx.core.content.FileProvider
 import androidx.core.net.toFile
 import androidx.core.net.toUri
 import io.ktor.client.*
-import io.ktor.client.call.*
 import io.ktor.client.engine.okhttp.*
 import io.ktor.client.plugins.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
-import io.ktor.util.*
-import io.ktor.util.cio.*
 import io.ktor.utils.io.*
-import io.ktor.utils.io.core.*
 import kotlinx.coroutines.*
 import java.io.File
 import kotlin.math.roundToInt
@@ -98,7 +94,7 @@ object Utils {
         val ret = runCatching {
             val response = client.get(fileUrl) {
                 onDownload { bytesSentTotal, contentLength ->
-                    if (contentLength == -1L) {
+                    if (contentLength == -1L || contentLength == null) {
                         onProgress(-1)
                     } else {
                         val progress =
@@ -118,7 +114,7 @@ object Utils {
                 Log.e("TAG", "getSavedApkUri: ${response.status.value}")
                 return@runCatching null
             }
-            response.content.copyAndClose(target.writeChannel())
+            target.writeBytes(response.readRawBytes())
         }
         if (ret.isFailure) {
             Log.e("TAG", "getSavedApkUri: ", ret.exceptionOrNull())
