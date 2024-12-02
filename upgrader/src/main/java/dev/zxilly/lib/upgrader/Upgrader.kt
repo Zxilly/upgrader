@@ -15,6 +15,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.net.toFile
 import androidx.core.net.toUri
+import androidx.lifecycle.Observer
 import androidx.work.*
 import dev.zxilly.lib.upgrader.repo.Repo
 import kotlinx.coroutines.CoroutineScope
@@ -231,9 +232,13 @@ class Upgrader private constructor(private val app: Application, config: Config)
             worker
         )
 
-        val observer = object : androidx.lifecycle.Observer<WorkInfo> {
+        val observer = object : Observer<WorkInfo?> {
             @SuppressLint("MissingPermission")
-            override fun onChanged(it: WorkInfo) {
+            override fun onChanged(it: WorkInfo?) {
+                if (it == null) {
+                    return
+                }
+
                 fun infoLack() {
                     Log.e(TAG, "Download info lack")
                 }
