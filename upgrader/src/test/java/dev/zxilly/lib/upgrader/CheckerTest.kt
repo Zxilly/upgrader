@@ -1,6 +1,5 @@
 package dev.zxilly.lib.upgrader
 
-import dev.zxilly.lib.upgrader.checker.AppCenterChecker
 import dev.zxilly.lib.upgrader.checker.GitHubRMCConfig
 import dev.zxilly.lib.upgrader.checker.GitHubReleaseMetadataChecker
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -33,20 +32,6 @@ class CheckerTest {
                 GitHubRMCConfig.UpgradeChannel.PRE_RELEASE,
                 githubToken
             )
-        ).getLatestVersion()
-    }
-
-    @Test
-    fun appCenterInit() = runTest {
-        AppCenterChecker(
-            "0c045975-212b-441d-9ee4-e6ab9c76f8a3"
-        )
-    }
-
-    @Test
-    fun appCenterGetLatestVersion() = runTest {
-        AppCenterChecker(
-            "0c045975-212b-441d-9ee4-e6ab9c76f8a3"
         ).getLatestVersion()
     }
 }
