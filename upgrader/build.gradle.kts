@@ -1,10 +1,13 @@
 @file:Suppress("UnstableApiUsage")
 
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
+
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
     id("maven-publish")
-    id("org.jetbrains.kotlin.plugin.serialization") version "2.1.20"
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.2.21"
 }
 
 group = "dev.zxilly.lib"
@@ -32,7 +35,7 @@ if (System.getenv("CI") != null && System.getenv("GITHUB_ACTIONS") != null) {
 
 android {
     namespace = "dev.zxilly.lib.upgrader"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 25
@@ -57,9 +60,12 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = "11"
-        freeCompilerArgs += "-Xstring-concat=inline"
+
+    kotlin {
+        compilerOptions {
+            jvmTarget = JvmTarget.JVM_11
+            freeCompilerArgs.add("-Xstring-concat=inline")
+        }
     }
 
     publishing {
@@ -70,13 +76,13 @@ android {
 }
 
 dependencies {
-    implementation("androidx.core:core-ktx:1.15.0")
+    implementation("androidx.core:core-ktx:1.17.0")
 
-    val workVersion = "2.10.0"
+    val workVersion = "2.11.0"
     implementation("androidx.work:work-runtime:$workVersion")
     implementation("androidx.work:work-runtime-ktx:$workVersion")
 
-    val ktorVersion = "3.1.0"
+    val ktorVersion = "3.3.3"
     implementation("io.ktor:ktor-client-core:$ktorVersion")
     implementation("io.ktor:ktor-client-okhttp:$ktorVersion")
     implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
@@ -84,15 +90,15 @@ dependencies {
 
     testImplementation("junit:junit:4.13.2")
 
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:2.1.10")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.1")
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:2.2.21")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
 
-    testImplementation("org.mockito:mockito-core:5.15.2")
+    testImplementation("org.mockito:mockito-core:5.20.0")
     testImplementation("org.mockito:mockito-inline:5.2.0")
-    testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:6.1.0")
 
-    androidTestImplementation("androidx.test.ext:junit:1.2.1")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
+    androidTestImplementation("androidx.test.ext:junit:1.3.0")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.7.0")
 }
 
 publishing {

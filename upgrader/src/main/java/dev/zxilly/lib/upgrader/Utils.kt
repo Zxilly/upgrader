@@ -1,5 +1,6 @@
 package dev.zxilly.lib.upgrader
 
+import android.annotation.SuppressLint
 import android.app.*
 import android.content.ActivityNotFoundException
 import android.content.Context
@@ -132,6 +133,7 @@ object Utils {
         }
     }
 
+    @SuppressLint("RequestInstallPackagesPolicy")
     @Suppress("DEPRECATION")
     fun installApk(activity: Activity, installUri: String) {
         val file = installUri.toUri().toFile()
@@ -181,14 +183,10 @@ object Utils {
         scope: CoroutineScope,
         action: (T) -> Unit
     ): (T) -> Unit {
-        var debounceJob: Job? = null
         return { param: T ->
-            if (debounceJob == null) {
-                debounceJob = scope.launch {
-                    action(param)
-                    delay(delayMillis)
-                    debounceJob = null
-                }
+            scope.launch {
+                action(param)
+                delay(delayMillis)
             }
         }
     }
@@ -243,17 +241,20 @@ object Utils {
             )
                 .signingInfo
 
-            if (currentSignature.hasMultipleSigners()) {
-                Log.w("TAG", "checkApk: has multiple signers, can't check signature")
-                return flag
+            currentSignature?.let {
+                if (it.hasMultipleSigners()) {
+                    Log.w("TAG", "checkApk: has multiple signers, can't check signature")
+                    return flag
+                }
             }
 
             val currentSignatures = currentSignature
-                .apkContentsSigners.map { it.toCharsString() }
+                ?.apkContentsSigners?.map { it.toCharsString() }
 
-            val apkSignature = info.signingInfo.signingCertificateHistory[0].toCharsString()
+            val apkSignature = info.signingInfo?.let { it.signingCertificateHistory[0] }
+                ?.toCharsString()
 
-            flag = flag and currentSignatures.contains(apkSignature)
+            currentSignatures?.let { flag = flag and it.contains(apkSignature) }
 
             if (!flag) {
                 Log.e("TAG", "checkApk: signature not match")
