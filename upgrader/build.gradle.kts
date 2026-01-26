@@ -95,7 +95,7 @@ dependencies {
 
     testImplementation("org.mockito:mockito-core:5.21.0")
     testImplementation("org.mockito:mockito-inline:5.2.0")
-    testImplementation("org.mockito.kotlin:mockito-kotlin:6.2.1")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:6.2.2")
 
     androidTestImplementation("androidx.test.ext:junit:1.3.0")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.7.0")
