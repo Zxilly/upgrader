@@ -7,7 +7,7 @@ plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
     id("maven-publish")
-    id("org.jetbrains.kotlin.plugin.serialization") version "2.3.0"
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.3.10"
 }
 
 group = "dev.zxilly.lib"
@@ -90,7 +90,7 @@ dependencies {
 
     testImplementation("junit:junit:4.13.2")
 
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:2.3.0")
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:2.3.10")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
 
     testImplementation("org.mockito:mockito-core:5.21.0")
