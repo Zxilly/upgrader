@@ -88,6 +88,7 @@ dependencies {
     implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
 
+    testImplementation("io.ktor:ktor-client-mock:$ktorVersion")
     testImplementation("junit:junit:4.13.2")
 
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:2.3.20")
