@@ -6,6 +6,7 @@ import dev.zxilly.lib.upgrader.Checker
 import dev.zxilly.lib.upgrader.Version
 import io.ktor.client.*
 import io.ktor.client.call.*
+import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.engine.okhttp.*
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
@@ -16,10 +17,15 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-class GitHubReleaseMetadataChecker(private val config: GitHubRMCConfig) :
-    Checker {
+class GitHubReleaseMetadataChecker internal constructor(
+    private val config: GitHubRMCConfig,
+    private val engineFactory: () -> HttpClientEngine
+) : Checker {
+    constructor(config: GitHubRMCConfig) : this(config, { OkHttp.create() })
+
     override suspend fun getLatestVersion(): Version {
-        val client = HttpClient(OkHttp) {
+        val engine = engineFactory()
+        val client = HttpClient(engine) {
             install(UserAgent) {
                 agent = "Upgrader"
             }
@@ -45,39 +51,44 @@ class GitHubReleaseMetadataChecker(private val config: GitHubRMCConfig) :
             }
         }
 
-        val releaseInfo: List<GitHubReleaseInfo.Root> =
-            client.get(endpoint.format(config.owner, config.repo)) {
-                parameter("per_page", 10)
-            }.body()
+        try {
+            val releaseInfo: List<GitHubReleaseInfo.Root> =
+                client.get(endpoint.format(config.owner, config.repo)) {
+                    parameter("per_page", 10)
+                }.body()
 
-        val release = when (config.upgradeChannel) {
-            GitHubRMCConfig.UpgradeChannel.RELEASE -> releaseInfo.firstOrNull { !it.prerelease }
-            GitHubRMCConfig.UpgradeChannel.PRE_RELEASE -> releaseInfo.firstOrNull()
-        } ?: throw Exception("No release found")
+            val release = when (config.upgradeChannel) {
+                GitHubRMCConfig.UpgradeChannel.RELEASE -> releaseInfo.firstOrNull { !it.prerelease }
+                GitHubRMCConfig.UpgradeChannel.PRE_RELEASE -> releaseInfo.firstOrNull()
+            } ?: throw Exception("No release found")
 
-        // find output-metadata.json
-        val asset = release.assets.find { it.name == "output-metadata.json" }
-            ?: throw Exception("output-metadata.json not found")
-        // parse output-metadata.json
-        val metadata: MetaDataInfo.Root = client.get(asset.browserDownloadUrl).body()
-        val elements = metadata.elements
-        if (elements.isEmpty()) throw Exception("No elements found")
-        val element = elements[0]
-        val versionCode = element.versionCode
-        val versionName = element.versionName
+            // find output-metadata.json
+            val asset = release.assets.find { it.name == "output-metadata.json" }
+                ?: throw Exception("output-metadata.json not found")
+            // parse output-metadata.json
+            val metadata: MetaDataInfo.Root = client.get(asset.browserDownloadUrl).body()
+            val elements = metadata.elements
+            if (elements.isEmpty()) throw Exception("No elements found")
+            val element = elements[0]
+            val versionCode = element.versionCode
+            val versionName = element.versionName
 
-        val apkFileName = element.outputFile
+            val apkFileName = element.outputFile
 
-        val downloadUrl = release.assets.find { it.name == apkFileName }?.browserDownloadUrl
-            ?: throw Exception("APK file not found in release")
+            val downloadUrl = release.assets.find { it.name == apkFileName }?.browserDownloadUrl
+                ?: throw Exception("APK file not found in release")
 
-        return Version(
-            versionCode,
-            versionName,
-            release.body,
-            downloadUrl,
-            apkFileName
-        )
+            return Version(
+                versionCode,
+                versionName,
+                release.body,
+                downloadUrl,
+                apkFileName
+            )
+        } finally {
+            client.close()
+            engine.close()
+        }
     }
 
     companion object {
